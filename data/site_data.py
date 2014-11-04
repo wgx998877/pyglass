@@ -14,6 +14,8 @@ class site:
         self.data=data
     def show(self):
         print "%s,%s,%s,%s\n" % (self.id,self.name,self.pro,self.data)
+        for i in self.data:
+            print i
 def get_daily_data(year=0,last=0):
     import os
     dpath = os.path.split(os.path.realpath(__file__))[0]
@@ -39,10 +41,10 @@ def get_daily_data(year=0,last=0):
         time = ("%4d%02d%02d" % (int(i[1]),int(i[2]),int(i[3])))
         tmp = [time,i[4],i[5],i[6],i[7],i[8],i[9]]
         if year==0 or (year+last<=y) :
-            for x in xrange(j,l):
+            for x in xrange(0,l):
                 if sites[x].id == i[0]:
-                    j = x
-                    sites[x].data.append(tmp)
+                    #j = x
+                    sites[x].data= sites[x].data + [tmp]
                     break
     f.close()
     for i in sites:
@@ -50,5 +52,16 @@ def get_daily_data(year=0,last=0):
             sites.remove(i)
     print "get %d sites data!\n" % len(sites)
     return sites
-    #for i in sites:
-        #i.show()
+'''
+sites = []
+for i in range(10):
+    s = site(i,str(i),i,i,i,i,str(i),i)
+    sites.append(s)
+for i in range(10):
+    sites[i].show()
+sites[0].name = '56146'
+sites[0].data =sites[0].data + ['xxxxx']
+sites[0].data =sites[0].data + ['sdsdds']
+for i in range(10):
+    print sites[i].show()
+'''
