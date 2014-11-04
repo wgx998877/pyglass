@@ -6,4 +6,5 @@ import numpy as np
 def read(filename,fieldname):
 	hdf = SD(filename,SDC.READ)
 	data = hdf.select(fieldname)
+	hdf.end()
 	return data[:]
