@@ -43,4 +43,4 @@ def pca(data,topNfeat=999999):
     redEVec = eVec[:,eValInd]
     lowData = meanR * redEVec
     reconMat = (lowData * redEVec.T) + meanV
-    return lowData
+    return lowData,reconMat
