@@ -9,7 +9,7 @@ class site:
         self.rank = int(rank)
         self.lat=float(int(lat)/100)+(int(lat)%100)/60.0
         self.lon=float(int(lon)/100)+(int(lon)%100)/60.0
-        self.alt=int(alt.replace('(','').replace(')',''))
+        self.alt=float(int(alt.replace('(','').replace(')','')))/10.0
         self.time=time
         self.data=data
     def show(self):
