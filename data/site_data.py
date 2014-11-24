@@ -1,4 +1,6 @@
 # author : wgx
+import os
+dpath = os.path.split(os.path.realpath(__file__))[0]
 class site:
     def __init__(self,id='',name='',pro='',rank='',lat=0,lon=0,alt='0',time='',data=[]):
         if rank == '':
@@ -17,8 +19,6 @@ class site:
         for i in self.data:
             print i
 def get_daily_data(year=0,last=0):
-    import os
-    dpath = os.path.split(os.path.realpath(__file__))[0]
     s_info = open(dpath+'/site_txt/site_info.txt')
     sites = []
     for i in s_info:
@@ -52,6 +52,16 @@ def get_daily_data(year=0,last=0):
             sites.remove(i)
     print "get %d sites data!\n" % len(sites)
     return sites
+def get_month_data(year=0,last=0):
+    f = open(dpath+'/site_txt/site_Month_data.txt').readline()
+    s = []
+    for i in f:
+        i = i.strip().split(',')
+        id,y,m,r = i[0],int(i[1]),int(i[2]),i[3]
+        r = float(r) * 10000.0/3600.0/24.0
+        if year==0 or (year+last<=y) :
+            s.append([id,y,m,r])
+    return s
 '''
 sites = []
 for i in range(10):

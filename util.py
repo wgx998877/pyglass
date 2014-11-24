@@ -1,3 +1,23 @@
+#!/usr/bin/python
+# Filename: util.py
+# Author: wgx
+import os
+from pyhdf.SD import SD,SDC
+import numpy as np
+def readhdf(filename,fieldname):
+	hdf = SD(filename,SDC.READ)
+        data = hdf.select(fieldname)[:].copy()
+	hdf.end()
+	return data
+def lsfiles(path=os.getcwd(),keys=''):
+	result = []
+	if os.path.exists(path) == False:
+		raise IOError('Path not Exists!')
+	for root,dirs,files in os.walk(path):
+		for fp in files:
+			if keys in fp:
+				result.append(os.path.join(root,fp))
+	return result
 def num_to_day(str):
     year = str[:4]
     num = int(str[4:])
