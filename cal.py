@@ -24,7 +24,7 @@ def leastsq(x,y):
     b = meany - k*meanx
 
     return k,b   #返回拟合的两个参数值
-def calb(x,y,k=1,b=1):
+def bias(x,y,k=1,b=1):
     if len(x)==0:
 	return -1
     r = 0.0
@@ -36,7 +36,7 @@ def calb(x,y,k=1,b=1):
         cnt += 1
         r += (y[i]-x[i])
     return r/float(cnt)
-def calrmse(x,y):
+def rmse(x,y):
     if len(x)==0:
 	return -1
     s = 0.0
@@ -49,7 +49,7 @@ def calrmse(x,y):
         cnt += 1 
     s/=float(cnt)
     return s ** 0.5
-def calr2(x,y):
+def r2(x,y):
     if len(x)==0:
 	return -1
     t2 = 0.0
@@ -63,8 +63,6 @@ def calr2(x,y):
         t2 += (x[i]-mx)*(y[i]-my) 
         x2 += (x[i]-mx)**2
         y2 += (y[i]-my)**2
-    if (t2/((x2*y2)**0.5))**2 != (t2/(math.sqrt(x2*y2)))**2:
-        print (t2/((x2*y2)**0.5))**2,(t2/(math.sqrt(x2*y2)))**2
     return (t2/((x2*y2)**0.5))**2
 
 def pca(data,topNfeat=999999):

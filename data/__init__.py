@@ -1,1 +1,1 @@
-import site_data
+from site_data import *

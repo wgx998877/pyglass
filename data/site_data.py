@@ -18,7 +18,7 @@ class site:
         print "%s,%s,%s,%s\n" % (self.id,self.name,self.pro,self.data)
         for i in self.data:
             print i
-def get_daily_data(year=0,last=0):
+def get_site_info():
     s_info = open(dpath+'/site_txt/site_info.txt')
     sites = []
     for i in s_info:
@@ -30,6 +30,9 @@ def get_daily_data(year=0,last=0):
             print 'error:'
             print i
     s_info.close()
+    return sites
+def get_daily_data(year=0,last=0):
+    sites = get_site_info()
     l = len(sites)
     f = open(dpath+'/site_txt/site_daily_data.txt')
     j = 0
@@ -53,14 +56,31 @@ def get_daily_data(year=0,last=0):
     print "get %d sites data!\n" % len(sites)
     return sites
 def get_month_data(year=0,last=0):
-    f = open(dpath+'/site_txt/site_Month_data.txt').readline()
+    sites = get_site_info()
+    f = open(dpath+'/site_txt/site_month_data.txt')
+    f.readline()
     s = []
+    si = site()
+    days = [0,31,28,31,30,31,30,31,31,30,31,30,31]
     for i in f:
         i = i.strip().split(',')
         id,y,m,r = i[0],int(i[1]),int(i[2]),i[3]
-        r = float(r) * 10000.0/3600.0/24.0
-        if year==0 or (year+last<=y) :
-            s.append([id,y,m,r])
+        if y%400==0 or (y%100!=0 and y%4==0):
+            days[2] = 29
+        r = float(r)
+        r = r * 10000.0/3600.0/24.0/float(days[m])
+        for j in sites:
+            if j.id == id:
+                si = j
+                break
+        if year==0 or (year+last<=y and year-last>=y) :
+            if r > 9900000:
+                print 'error data:',id,y,m,r
+                continue
+            if si == site():
+                print 'unkown site',id
+                continue
+            s.append([id,si.lat,si.lon,si.alt,y,m,r])
     return s
 '''
 sites = []

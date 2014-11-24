@@ -34,6 +34,11 @@ def num_to_day(str):
             d = num
             break
     return "%4s%02d%02d" % (year,m,d)
+def get_days(year=0):
+    mon_num = [31,28,31,30,31,30,31,31,30,31,30,31]
+    if is_r(int(year)) and year != 0:
+        mon_num[1] = 29
+    return mon_num
 def is_r(year):
     r = False
     if year % 4==0:
