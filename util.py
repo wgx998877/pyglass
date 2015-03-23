@@ -26,6 +26,9 @@ def appendhdf(filename, table='', row = 0, data = []):
     attr[row] = data
     return True
 
+#def readBinary(filename, type='i',size)
+
+
 def lsfiles(path=os.getcwd(),keys=''):
     result = []
     if file_exist(path) == False:
