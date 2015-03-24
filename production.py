@@ -4,6 +4,10 @@
 import numppy as np
 import util as u
 
+RAD_PROD_SCALE = 10000
+ELE_SCALE = 0.001
+
+
 Nband = 1
 Ntheta0 = 9
 Ntheta = 5
@@ -12,7 +16,9 @@ Nvis = 18
 Nele = 6
 Nwater = 10
 
-class rad():
+
+
+class RAD():
     
     theta0 = [1.0, 15.0, 30.0, 40.0, 55.0, 65.0, 75.0, 85.0, 90.0]
     theta =  [1.0, 20.0, 40.0, 60.0, 80.0]
@@ -39,41 +45,6 @@ class rad():
 
         self.lppdi0 = np.zeros((Ntheta0, Nwater, Nvis, Nele))
 
-    def readLUTbyElevation(self, filename, elevation, Type = 'TOA'):
-        if u.file_exist(filename) == False:
-            return None
-        Nwat = 0
-        if elevation == 0 : Nwat = 10
-        elif elevation == 1 : Nwat = 9
-        elif elevation == 2 : Nwat = 8
-        elif elevation == 3 : Nwat = 7
-        elif elevation == 4 : Nwat = 6
-        elif elevation == 5 : Nwat = 7
-        nele_index = int(elevation)
-        fLUT = open(filename)
-        if Type == 'TOA':
-            for i1 in range(Ntheta0 - 1):
-                for i2 in range(Ntheta):
-                    for i3 in range(Nfi):
-                        for i4 in range(Nwat):
-                            for i5 in range(Nvis):
-                                line = fLUT.readline()
-                                w = map(float, line.strip().split())
-                                self.lp0[i1, i2, i3, i4, i5, nele_index] = w[5]
-                                self.rbar0[i1, i2, i3, i4, i5, nele_index] = w[6]
-                                self.fd0[i1, i2, i3, i4, i5, nele_index] = w[7]
-        elif Type == 'SUR':
-            for i1 in range(Ntheta0 - 1):
-                for i2 in range(Nwat):
-                    for i3 in range(Nvis):
-                        line = fLUT.readline()
-                        w = map(float, line.strip().split())
-                        self.rbarp0[i1, i2, i3, nele_index] = w[3]
-                        self.fdp0[i1, i2, i3, nele_index] = w[4]
-                        self.lppdf0[i1, i2, i3, nele_index] = w[5]
-                        self.lppdi0[i1, i2, i3, nele_index] = w[6]
-
-        return True
 
     def calIndex(self, angle, Nl, l):
         index = 0
@@ -122,6 +93,41 @@ class rad():
         Nwat, waterAmount = self.getWaterAmount(elevation)
         return self.calIndex(zenith, Nwat, waterAmount)
 
+    def readLUTbyElevation(self, filename, elevation, Type = 'TOA'):
+        if u.file_exist(filename) == False:
+            return None
+        Nwat = 0
+        if elevation == 0 : Nwat = 10
+        elif elevation == 1 : Nwat = 9
+        elif elevation == 2 : Nwat = 8
+        elif elevation == 3 : Nwat = 7
+        elif elevation == 4 : Nwat = 6
+        elif elevation == 5 : Nwat = 7
+        nele_index = int(elevation)
+        fLUT = open(filename)
+        if Type == 'TOA':
+            for i1 in range(Ntheta0 - 1):
+                for i2 in range(Ntheta):
+                    for i3 in range(Nfi):
+                        for i4 in range(Nwat):
+                            for i5 in range(Nvis):
+                                line = fLUT.readline()
+                                w = map(float, line.strip().split())
+                                self.lp0[i1, i2, i3, i4, i5, nele_index] = w[5]
+                                self.rbar0[i1, i2, i3, i4, i5, nele_index] = w[6]
+                                self.fd0[i1, i2, i3, i4, i5, nele_index] = w[7]
+        elif Type == 'SUR':
+            for i1 in range(Ntheta0 - 1):
+                for i2 in range(Nwat):
+                    for i3 in range(Nvis):
+                        line = fLUT.readline()
+                        w = map(float, line.strip().split())
+                        self.rbarp0[i1, i2, i3, nele_index] = w[3]
+                        self.fdp0[i1, i2, i3, nele_index] = w[4]
+                        self.lppdf0[i1, i2, i3, nele_index] = w[5]
+                        self.lppdi0[i1, i2, i3, nele_index] = w[6]
+
+        return True
     def SearchLUTbyElevation_rad(self, rad, ref, elevation):#, parDi, parDif, visi):
         A = [0] * Nvis
         nele_index = int(elevation)
@@ -303,3 +309,77 @@ class rad():
 
     return True
 
+class PAR(RAD):
+    def __init__(self, TOAfp, SURfp, sensor):
+        RAD.__init__()
+        self.TOAfp =  TOAfp
+        self.SURfp =  SURfp
+        self.sensor = sensor
+        self.insoDif = np.zeros(Nele)
+        self.insoDi = np.zeros(Nele)
+
+    def readLUT(self):
+        elevation = 0.0
+        for i in range(Nele):
+            fpTOA = "%s%s%dkm.txt" % (self.fp, 'lut_clear_cloud_par_final_', i)
+            self.readLUTbyElevation(fpTOA, elevation, 'TOA')
+            fpSUR = "%s%s%dkm_%d.txt" % (self.fp, 'lut_clear_cloud_toa_', i, self.sensor)
+            self.readLUTbyElevation(fpSUR, elevation, 'SUR')
+            elevation += 1.0
+
+    def Interpolation(self, solar_zenith, view_zenith, relative_azimuth, water):
+        elevation = 0.0
+        for i in range(Nele):
+            self.InterpolationparaByElevation(solar_zenith,view_zenith,relative_azimuth,water, elevation)
+            elevation += 1.0
+
+    def SearchLUT(self, rad, ref):
+        elevation = 0.0
+        for i in range(Nele):
+            Di, Dif, vis = self.SearchLUTbyElevation_rad(rad,ref,elevation)
+            self.insoDi[i] = Di * RAD_PROD_SCALE
+            self.insoDif[i] = Dif * RAD_PROD_SCALE
+            elevation += 1.0
+
+class INSO(PAR):
+    def __init__(self, TOAfp, SURfp, sensor):
+        PAR.__init__(TOAfp,SURfp,sensor)
+    def readLUT(self):
+        elevation = 0.0
+        for i in range(Nele):
+            fpTOA = "%s%s%dkm.txt" % (self.fp, 'lut_clear_cloud_inso_final_', i)
+            self.readLUTbyElevation(fpTOA, elevation, 'TOA')
+            fpSUR = "%s%s%dkm_%d.txt" % (self.fp, 'lut_clear_cloud_toa_', i, self.sensor)
+            self.readLUTbyElevation(fpSUR, elevation, 'SUR')
+'''
+class INSO(RAD):
+    
+    def __init__(self, TOAfp, SURfp, sensor):
+        self.TOAfp =  TOAfp
+        self.SURfp =  SURfp
+        self.sensor = sensor
+        self.insoDif = np.zeros(Nele)
+        self.insoDi = np.zeros(Nele)
+
+    def readLUT(self):
+        elevation = 0.0
+        for i in range(Nele):
+            fpTOA = "%s%s%dkm.txt" % (self.fp, 'lut_clear_cloud_inso_final_', i)
+            self.readLUTbyElevation(fpTOA, elevation, 'TOA')
+            fpSUR = "%s%s%dkm_%d.txt" % (self.fp, 'lut_clear_cloud_toa_', i, self.sensor)
+            self.readLUTbyElevation(fpSUR, elevation, 'SUR')
+            elevation += 1.0
+
+    def Interpolation(self, solar_zenith, view_zenith, relative_azimuth, water):
+        elevation = 0.0
+        for i in range(Nele):
+            self.InterpolationparaByElevation(solar_zenith,view_zenith,relative_azimuth,water, elevation)
+            elevation += 1.0
+
+    def SearchLUT(self, rad, ref):
+        elevation = 0.0
+        for i in range(Nele):
+            Di, Dif, vis = self.SearchLUTbyElevation_rad(rad,ref,elevation)
+            self.insoDi[i] = Di * RAD_PROD_SCALE
+            self.insoDif[i] = Dif * RAD_PROD_SCALE
+            elevation += 1.0

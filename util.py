@@ -26,8 +26,21 @@ def appendhdf(filename, table='', row = 0, data = []):
     attr[row] = data
     return True
 
-#def readBinary(filename, type='i',size)
+def readBinary(filename, dtype=float ,size=-1):
+    file = np.fromfile(filename ,dtype = dtype, count = size)
+    return file
 
+def writeBinary(filename, data):
+    data.tofile(filename)
+    return True
+
+def readTxt(filename):
+    f = open(filename)
+    data = []
+    for i in f:
+        data.append(i.strip())
+    f.close()
+    return data
 
 def lsfiles(path=os.getcwd(),keys=''):
     result = []
@@ -74,6 +87,7 @@ def is_r(year):
     if year%100==0 and year%400!=0:
         r = False
     return r
+
 
 class dt():
     def __init__(self, year = 1990, month = 1, day = 1,hour=0,minute=0,second=0,tz=0):
