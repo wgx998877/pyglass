@@ -5,6 +5,7 @@ import os
 import util as u
 import datetime
 import numpy as np
+import math
 
 class SREF():
     def __init__(self):
@@ -15,6 +16,12 @@ class SREF():
         self.gmt = 0.0
         self.ref = 0.0
 
+class ANGLE():
+    def __init__(self):
+        self.solzen = 0.0
+        self.senzen = 0.0
+        self.relazi = 0.0
+        
 class BASE():
 
     def __init__(self, fp = '',row = 0, col = 0):
@@ -27,6 +34,7 @@ class BASE():
     
     def initDN(self):
         return np.zeros((self.row, self.col))
+
 
 REF_SCALE = 0.0001
 
@@ -97,16 +105,18 @@ class DEM(BASE):
         if row*col != self.DN.size:
             raise ValueError('file size not equel row,col')
         self.DN = self.DN.reshape(row, col)
-
+from spa import *
 class Satellite(BASE):
 
     def __init__(self, fp = '',row = 0, col = 0, tag = ''):
         BASE.__init__(self, fp, row, col)
-        self.filetime = datetime.datetime.now()
+        self.filetime = u.dt() 
         self.jdays = 0
+        self.fgmt = 0.0
         if fp != '' and tag != '' and  os.path.exists(fp) == True:
             self.filetime, self.jdays = self.calculate_time(tag)
-
+        self.angle_pixel = ANGLE()
+        self.angle = [ANGLE() for i in range(self.col)]
 
     def calibrate(self):
         for i in range(self.row):
@@ -130,11 +140,67 @@ class Satellite(BASE):
             minute = int(self.filepath[ta + 10: ta + 12])
             days = u.get_days(year)
             jdays = sum(days[: month - 1]) + day
-            ct = datetime.datetime(year = year, month = month, day = day, hour = hour, minute = minute)
+            ct = u.dt(year = year, month = month, day = day, hour = hour, minute = minute)
             return ct, jdays
         except Exception, e:
             print e
-            return datetime.datetime.now()
+    def calLineOfAngles(self, lat, lon, z, spa, sensorlon = 0.0):
+        for i in range(self.col):
+            if lon[i] > 0:
+                spa.timezone = (lon[i] + 7.5) / 15
+            else :
+                spa.timezone = (lon[i] - 7.5) / 15
+            ltime = self.fgmt + lon[i] / 15.0
+            if ltime < 0 :
+                ltime += 24
+            if ltime > 24:
+                ltime -= 24
+            lhour = math.floor(ltime)
+            lminute = (ltime - lhour) * 60.0
+            spa.hour = lhour
+            spa.minute = lminute
+            spa.second = 0
+            spa.delta_t = 67
+            spa.longitude = lon[i]
+            spa.latitude  = lat[i]
+            spa.elevation = z[i]
+            spa.pressure  = 1013
+            spa.temperature = 283
+            spa.slope = 0
+            spa.azm_rotation = 0
+            spa.atmos_refract = 0
+            spa.function = SPA_ALL
+            spa.year = self.year
+            spa.month = self.month
+            spa.day  = self.day
+            spa.oorbitheight = 36000
+            spa.sensorlon = sensorlon
+            spa = spa_calculate(spa)
+            spa = spa_calculate_angle(spa)
+            self.angle[i].solzen = spa.zenith
+            self.angle[i].senzen = spa.senzenith
+            self.angle[i].relazi = spa.relazimuth
+        return True
 
+class MSG(Satellite):
 
+    def __init__(self, fp = '', row = 0, col = 0, tag = ''):
+        Satellite.__init__(fp, row , col,tag )
+    
+    def readDN(self):
+        strset = 'ch1'
+        self.DN = u.readhdf(self.filepath, strset)
 
+class MTSAT(Satellite):
+
+    def __init__(self, fp = '', row = 0, col = 0, tag = ''):
+        Satellite.__init__(fp, row ,col , tag)
+
+    def readDN(self, row = -1):
+        if row == -1 :
+            self.DN = u.readBinary(self.filepath, dtype = int, size = self.row * self.col)
+        else :
+        #this function need to be updated!
+            self.DN[row] = u.readBinary(self.filepath, dtype = int, size = self.row * self.col)[row]
+        return True
+            
