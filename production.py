@@ -315,8 +315,8 @@ class PAR(RAD):
         self.TOAfp =  TOAfp
         self.SURfp =  SURfp
         self.sensor = sensor
-        self.insoDif = np.zeros(Nele)
-        self.insoDi = np.zeros(Nele)
+        self.Dif = np.zeros(Nele)
+        self.Di = np.zeros(Nele)
 
     def readLUT(self):
         elevation = 0.0
@@ -337,8 +337,8 @@ class PAR(RAD):
         elevation = 0.0
         for i in range(Nele):
             Di, Dif, vis = self.SearchLUTbyElevation_rad(rad,ref,elevation)
-            self.insoDi[i] = Di * RAD_PROD_SCALE
-            self.insoDif[i] = Dif * RAD_PROD_SCALE
+            self.Di[i] = Di * RAD_PROD_SCALE
+            self.Dif[i] = Dif * RAD_PROD_SCALE
             elevation += 1.0
 
 class INSO(PAR):

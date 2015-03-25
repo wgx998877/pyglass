@@ -5,9 +5,12 @@ import os
 import util as u
 import datetime
 import numpy as np
+from spa import *
 import math
 
+
 class SREF():
+
     def __init__(self):
         self.year = 1992
         self.month = 1
@@ -16,31 +19,35 @@ class SREF():
         self.gmt = 0.0
         self.ref = 0.0
 
+
 class ANGLE():
+
     def __init__(self):
         self.solzen = 0.0
         self.senzen = 0.0
         self.relazi = 0.0
-        
+
+
 class BASE():
 
-    def __init__(self, fp = '',row = 0, col = 0):
+    def __init__(self, fp='', row=0, col=0):
         if u.file_exist(fp) == False:
             raise IOError('file not Exists: %s!' % fp)
         self.filepath = fp
         self.col = col
         self.row = row
         self.DN = self.initDN()
-    
+
     def initDN(self):
         return np.zeros((self.row, self.col))
 
 
 REF_SCALE = 0.0001
 
+
 class Reflectance(BASE):
 
-    def __init__(self, fp = '',row = 0, col = 0):
+    def __init__(self, fp='', row=0, col=0):
         BASE.__init__(fp, row, col)
         self.ref = SREF()
         self.filenum = 0
@@ -54,6 +61,7 @@ class Reflectance(BASE):
     def readFileName(self):
         self.filename = u.readTxt(self.filepath)
         self.filenum = len(self.filename)
+
     def setRef(self, nyear, nmonth, nday, jday, gmt, ref):
         self.ref.year = nyear
         self.ref.month = nmonth
@@ -64,7 +72,7 @@ class Reflectance(BASE):
 
     def getFileIndexYearDay(self, nyear, nday):
         pass
-    
+
     def readRefQCMatrixFromHDFFile(self):
         index = self.getFileIndexYearDay()
         if index < 0 or index > self.filenum - 1:
@@ -76,44 +84,69 @@ class Reflectance(BASE):
         for i in self.row:
             for j in self.col:
                 self.ref_update[i][j] = 0.05
-                self.ref_update[i][j] = data[i*self.col + j] * REF_SCALE
+                self.ref_update[i][j] = data[i * self.col + j] * REF_SCALE
         strset = 'sur_refl_qc_500m'
         data = u.readhdf(file, strset)
         for i in self.row:
             for j in self.col:
-                self.ref_QC_MODIS[i][j] = data[i*self.col + j]
+                self.ref_QC_MODIS[i][j] = data[i * self.col + j]
         strset = 'sur_refl_qc_500m+'
         data = u.readhdf(file, strset)
         for i in self.row:
             for j in self.col:
-                self.ref_QC[i][j] = data[i*self.col + j]
+                self.ref_QC[i][j] = data[i * self.col + j]
+
+
+class Watervapor(Reflectance):
+
+    def __init__(self, fp='', row=0, col=0):
+        Reflectance.__init__(fp, row, col)
+
 
 class LatLon(BASE):
 
-    def __init__(self, fp = '',row = 0, col = 0):
+    def __init__(self, fp='', row=0, col=0):
         BASE.__init__(fp, row, col)
-        self.DN = u.readBinary(fp, size=row*col)
-        if row*col != self.DN.size:
+        self.DN = u.readBinary(fp, size=row * col)
+        if row * col != self.DN.size:
             raise ValueError('file size not equel row,col')
         self.DN = self.DN.reshape(row, col)
+
 
 class DEM(BASE):
 
-    def __init__(self, fp = '',row = 0, col = 0):
+    def __init__(self, fp='', row=0, col=0):
         BASE.__init__(fp, row, col)
-        self.DN = u.readBinary(fp, size=row*col)
-        if row*col != self.DN.size:
+        self.DN = u.readBinary(fp, size=row * col)
+        if row * col != self.DN.size:
             raise ValueError('file size not equel row,col')
         self.DN = self.DN.reshape(row, col)
-from spa import *
+
+
+class SatelliteFactory():
+
+    def create(self, name, fp, row, col):
+        if name.lower() == 'msg':
+            tag = 'EUMG_'
+            return MSG(fp, row, col, tag)
+        elif name.lower() == 'modis':
+            return MODIS()
+        elif name.lower() == 'geos':
+            return GEOS()
+        elif name.lower() == 'mtsat':
+            return MTSAT()
+        else:
+            return Satellite(fp, row, col)
+
+
 class Satellite(BASE):
 
-    def __init__(self, fp = '',row = 0, col = 0, tag = ''):
+    def __init__(self, fp='', row=0, col=0, tag=''):
         BASE.__init__(self, fp, row, col)
-        self.filetime = u.dt() 
+        self.filetime = u.dt()
         self.jdays = 0
         self.fgmt = 0.0
-        if fp != '' and tag != '' and  os.path.exists(fp) == True:
+        if fp != '' and tag != '' and os.path.exists(fp) == True:
             self.filetime, self.jdays = self.calculate_time(tag)
         self.angle_pixel = ANGLE()
         self.angle = [ANGLE() for i in range(self.col)]
@@ -125,33 +158,39 @@ class Satellite(BASE):
 
     def calibrate_pixel(self, data):
         if data < 1024:
-            data = (-0.001 + (data * 1.001/1024.0)) * 435.559
-        else :
+            data = (-0.001 + (data * 1.001 / 1024.0)) * 435.559
+        else:
             data = 435.559
         return data
 
     def calculate_time(self, tag=''):
         try:
             ta = self.filepath.find(tag) + len(tag) - 1
-            year = int(self.filepath[ta : ta + 4])
+            year = int(self.filepath[ta: ta + 4])
             month = int(self.filepath[ta + 4: ta + 6])
             day = int(self.filepath[ta + 6: ta + 8])
             hour = int(self.filepath[ta + 8: ta + 10])
             minute = int(self.filepath[ta + 10: ta + 12])
             days = u.get_days(year)
             jdays = sum(days[: month - 1]) + day
-            ct = u.dt(year = year, month = month, day = day, hour = hour, minute = minute)
+            ct = u.dt(
+                year=year,
+                month=month,
+                day=day,
+                hour=hour,
+                minute=minute)
             return ct, jdays
-        except Exception, e:
+        except Exception as e:
             print e
-    def calLineOfAngles(self, lat, lon, z, spa, sensorlon = 0.0):
+
+    def calLineOfAngles(self, lat, lon, z, spa, sensorlon=0.0):
         for i in range(self.col):
             if lon[i] > 0:
                 spa.timezone = (lon[i] + 7.5) / 15
-            else :
+            else:
                 spa.timezone = (lon[i] - 7.5) / 15
             ltime = self.fgmt + lon[i] / 15.0
-            if ltime < 0 :
+            if ltime < 0:
                 ltime += 24
             if ltime > 24:
                 ltime -= 24
@@ -162,9 +201,9 @@ class Satellite(BASE):
             spa.second = 0
             spa.delta_t = 67
             spa.longitude = lon[i]
-            spa.latitude  = lat[i]
+            spa.latitude = lat[i]
             spa.elevation = z[i]
-            spa.pressure  = 1013
+            spa.pressure = 1013
             spa.temperature = 283
             spa.slope = 0
             spa.azm_rotation = 0
@@ -172,7 +211,7 @@ class Satellite(BASE):
             spa.function = SPA_ALL
             spa.year = self.year
             spa.month = self.month
-            spa.day  = self.day
+            spa.day = self.day
             spa.oorbitheight = 36000
             spa.sensorlon = sensorlon
             spa = spa_calculate(spa)
@@ -180,27 +219,56 @@ class Satellite(BASE):
             self.angle[i].solzen = spa.zenith
             self.angle[i].senzen = spa.senzenith
             self.angle[i].relazi = spa.relazimuth
-        return True
+        return spa
+
 
 class MSG(Satellite):
 
-    def __init__(self, fp = '', row = 0, col = 0, tag = ''):
-        Satellite.__init__(fp, row , col,tag )
-    
+    def __init__(self, fp='', row=0, col=0, tag=''):
+        Satellite.__init__(fp, row, col, tag)
+
     def readDN(self):
         strset = 'ch1'
         self.DN = u.readhdf(self.filepath, strset)
 
+
+class GEOS(Satellite):
+
+    def __init__(self, fp='', row=0, col=0, tag=''):
+        Satellite.__init__(fp, row, col, tag)
+
+    def readDN(self):
+        strset = 'ch1'
+        self.DN = u.readhdf(self.filepath, strset)
+
+
+class MODIS(Satellite):
+
+    def __init__(self, fp='', row=0, col=0, tag=''):
+        Satellite.__init__(fp, row, col, tag)
+
+    def readDN(self):
+        strset = 'ch1'
+        self.DN = u.readhdf(self.filepath, strset)
+
+
 class MTSAT(Satellite):
 
-    def __init__(self, fp = '', row = 0, col = 0, tag = ''):
-        Satellite.__init__(fp, row ,col , tag)
+    def __init__(self, fp='', row=0, col=0, tag=''):
+        Satellite.__init__(fp, row, col, tag)
 
-    def readDN(self, row = -1):
-        if row == -1 :
-            self.DN = u.readBinary(self.filepath, dtype = int, size = self.row * self.col)
-        else :
-        #this function need to be updated!
-            self.DN[row] = u.readBinary(self.filepath, dtype = int, size = self.row * self.col)[row]
+    def readDN(self, row=-1):
+        if row == -1:
+            self.DN = u.readBinary(
+                self.filepath,
+                dtype=int,
+                size=self.row *
+                self.col)
+        else:
+            # this function need to be updated!
+            self.DN[row] = u.readBinary(
+                self.filepath,
+                dtype=int,
+                size=self.row *
+                self.col)[row]
         return True
-            
