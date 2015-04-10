@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import numppy as np
+import numpy as np
 import util as u
 
 RAD_PROD_SCALE = 10000
@@ -307,7 +307,7 @@ class RAD():
             self.rbarp[j][nele_index]=(1.0-dwater)*xx32+dwater*xx3;
             self.fdp[j][nele_index]=(1.0-dwater)*xx42+dwater*xx4;
 
-    return True
+        return True
 
 class PAR(RAD):
     def __init__(self, TOAfp, SURfp, sensor):
@@ -383,3 +383,4 @@ class INSO(RAD):
             self.insoDi[i] = Di * RAD_PROD_SCALE
             self.insoDif[i] = Dif * RAD_PROD_SCALE
             elevation += 1.0
+'''
