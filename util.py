@@ -31,8 +31,8 @@ def appendhdf(filename, table='', row=0, data=[]):
 
 def ll2xy(lat, lon, sat='avhrr'):
     if sat == 'avhrr':
-        x = 1 + (lat * 100 - 8998)
-        y = 1 + (lon * 100 + 17998)
+        x = 1 + (8998 - lat * 100)/5
+        y = 1 + (lon * 100 + 17998)/5
     x = int(x)
     y = int(y)
     return x, y
@@ -68,6 +68,11 @@ def readTxt(filename):
     f.close()
     return data
 
+def list2Txt(data, filename):
+    fo = open(filename, 'w')
+    for i in data:
+        fo.write(i)
+    fo.close()
 
 def lsfiles(path=os.getcwd(), keys=''):
     result = []
