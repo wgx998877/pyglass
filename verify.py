@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-from data.site_data import get_daily_data, get_month_data
-from util import readhdf, ll2xy, num_to_day, readTxt, list2Txt
+from data.site_data import *
+from util import *
 
 sat = 'avhrr'
 def daily():
@@ -22,19 +22,62 @@ def daily():
             x, y = ll2xy(lat, lon, sat)
             for i in data:
                 if Date == i[0]:
-                    #tmp = [s.id, s.name, s.lat, s.lon, s.alt, i[0], i[1], d[x, y]]
-                    tmp = "%s,%s,%f,%f,%f,%s,%f,%f\n" % (s.id, s.name, s.lat, s.lon, s.alt, i[0], float(i[1])*10000/3600/24, d[x, y])
+                    #tmp = [s.id, s.name, s.lat, s.lon, s.alt, i[0], float(i[1])*10, d[x, y]]
+                    #tmp = "%s,%s,%f,%f,%f,%s,%f,%f\n" % (s.id, s.name, s.lat, s.lon, s.alt, i[0], float(i[1])*10000/3600/24, d[x, y])
+                    tmp = "%s,%s,%f,%f,%f,%s,%f,%f\n" % (s.id, s.name, s.lat, s.lon, s.alt, i[0], float(i[1])*10000/3600/24, float(d[x, y])*100000/3600/24)
                     result.append(tmp)
                     break
+    list2Txt(result, "out_daily")
     print "done"
     return result
 
+def daily_ex(filelist = "..\\station_data"):
+    files = lsfiles(filelist)
+    sites = {}
+    site_info = get_site_info_ex()
+    for f in files:
+        fr = open(f)
+        siteid = f[-9:-4]
+        sites[siteid] = {}
+        for i in fr:
+            i = i.strip().split()
+            t = "%s%s%s" % (i[0], i[1], i[2])
+            sites[siteid][t] = float(i[3])
+        fr.close()
+    print 'site_info_ex done!'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
+    field = 'DSSR_daily_integrated'
+    files = readTxt(filelist)
+    #sites = get_daily_data(2010)
+    result = []
+    for f in files:
+        print f
+        d = readhdf(f, field)
+        jDate = f[f.find("V01.A")+5:f.find("V01.A")+12]
+        Date = num_to_day(jDate)
+        for s in sites:
+            if s not in site_info:
+                continue
+            data = sites[s]
+            lat, lon = float(site_info[s][0]), float(site_info[s][1])
+            alt = float(site_info[s][2])
+            x, y = ll2xy(lat, lon, sat)
+            if Date in sites[s]:
+                #tmp = "%s,unknown,%f,%f,%f,%s,%f,%f\n" % (s, lat, lon, alt, Date, float(data[Date])*100000/3600/24, d[x, y])
+                tmp = "%s,unknown,%f,%f,%f,%s,%f,%f\n" % (s, lat, lon, alt, Date, float(data[Date]), float(d[x, y])/3600/24)
+                result.append(tmp)
+                
+    list2Txt(result, "out_daily_ex")
+    print "done:" + str(len(result))
+    return result
+    
 def monthly():
     filelist = "G:\\File_Gen\\monthly_integrated\\filelist.txt"
     field = "DSSR_monthly_integrated"
     files = readTxt(filelist)
     sites = get_month_data(2010)
     result = []
+    days = get_days(2010)
     for f in files:
         print f
         d = readhdf(f, field)
@@ -50,11 +93,12 @@ def monthly():
             r = s[6]
             alt = s[3]
             x, y = ll2xy(lat, lon, sat)
-            tmp = "%s,%f,%f,%f,%s,%f,%f\n" % (id, lat, lon, alt, Date, float(r), d[x, y])
+            tmp = "%s,unknonwn,%f,%f,%f,%s,%f,%f,%f\n" % (id, lat, lon, alt, Date, float(r), float(d[x, y])*100000/24/3600/days[s[5]-1], float(d[x,y]))
             result.append(tmp)
+    list2Txt(result, "out_monthly")
     return result
     
 if __name__ == "__main__":
-    r = monthly()
-    print len(r)
-    list2Txt(r, "out4")
+    daily()
+    #daily_ex()
+    #monthly()

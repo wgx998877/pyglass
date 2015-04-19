@@ -39,7 +39,23 @@ def get_site_info():
     s_info.close()
     return sites
 
-
+def get_site_info_ex():
+    s_info = open(dpath + '/site_txt/site_info_ex.txt')
+    sites = {}
+    for i in s_info:
+        try:
+            i = i.strip().split()
+            siteid = i[0]
+            lon = i[1]
+            lat = i[2]
+            alt = i[3]
+            sites[siteid] = [lat, lon, alt]
+        except:
+            print 'error:'
+            print i
+    s_info.close()
+    return sites
+            
 def get_daily_data(year=0, last=0):
     sites = get_site_info()
     l = len(sites)
