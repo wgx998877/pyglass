@@ -67,3 +67,10 @@ nohup.out
 *~
 out*
 *.png
+test*
+*.nc
+*.bin
+*.hdr
+result.zip
+gd.dem
+gd.hdr

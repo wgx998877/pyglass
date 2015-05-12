@@ -7,7 +7,7 @@ from cal import *
 
 sat = 'avhrr'
 def daily():
-    filelist = 'G:\\File_Gen1\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     sites = get_daily_data(2010)
@@ -46,7 +46,7 @@ def daily_ex(filelist = "..\\station_data"):
             sites[siteid][t] = float(i[3])
         fr.close()
     print 'site_info_ex done!'
-    filelist = 'G:\\File_Gen1\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     #sites = get_daily_data(2010)
@@ -86,7 +86,7 @@ def check_daily_ex(filelist = "..\\station_data"):
             sites[siteid][t] = float(i[3])
         fr.close()
     print 'site_info_ex done!'
-    filelist = 'G:\\File_Gen1\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     #sites = get_daily_data(2010)
@@ -116,7 +116,7 @@ def check_daily_ex(filelist = "..\\station_data"):
     return result
     
 def monthly():
-    filelist = "G:\\File_Gen1\\monthly_integrated\\filelist.txt"
+    filelist = "G:\\File_Gen\\monthly_integrated\\filelist.txt"
     field = "DSSR_monthly_integrated"
     files = readTxt(filelist)
     sites = get_month_data(2010)
@@ -142,22 +142,20 @@ def monthly():
     list2Txt(result, "out_monthly")
     return result
     
-def rstest(row=3600, col=7200):
+def rstest():
     filelist = "G:\\File_Gen\\monthly_integrated\\filelist.txt"
     field = "DSSR_monthly_integrated"
-    filelist = "I:\\GEWEX_SW_Monthly\\filelist.txt"
-    field = "par"
     files = readTxt(filelist)
     cnt = 0
     data = []
-    r = np.ones((row,col))
+    r = np.ones((3600,7200))
     for f in files:
         d = readhdf(f, field)
-        #Date = f[f.find("V01.A")+5:f.find("V01.A")+11]
-        data.append(d[0])
-    for i in range(0,row):
+        Date = f[f.find("V01.A")+5:f.find("V01.A")+11]
+        data.append(d)
+    for i in range(1500,1700):
         print i
-        for j in range(col):
+        for j in range(7200):
             r[i,j]=0
             x = []
             
@@ -165,24 +163,22 @@ def rstest(row=3600, col=7200):
                 x.append(k[i, j])
             t=RS(x)[0]
             r[i,j]= t
-    r.tofile("rs.bin")
+    r.tofile("prs.bin")
     
-def mktest(row=3600, col=7200):
+def mktest():
     filelist = "G:\\File_Gen\\monthly_integrated\\filelist.txt"
     field = "DSSR_monthly_integrated"
-    filelist = "I:\\GEWEX_SW_Monthly\\filelist.txt"
-    field = "par"
     files = readTxt(filelist)
     cnt = 0
     data = []
-    r = np.ones((row,col))
+    r = np.ones((3600,7200))
     for f in files:
         d = readhdf(f, field)
-        #Date = f[f.find("V01.A")+5:f.find("V01.A")+11]
-        data.append(d[0])
-    for i in range(0,row):
+        Date = f[f.find("V01.A")+5:f.find("V01.A")+11]
+        data.append(d)
+    for i in range(0,3600):
         print i
-        for j in range(col):
+        for j in range(7200):
             r[i,j]=0
             x = []
             
@@ -190,13 +186,13 @@ def mktest(row=3600, col=7200):
                 x.append(float(k[i, j]))
             t=mk(x)
             r[i,j]= t
-    r.tofile("mk.bin")
+    r.tofile("t.bin")
         
     
 if __name__ == "__main__":
+    rstest()
     #daily()
     #daily_ex()
     #monthly()
     #check_daily_ex()
-    mktest(180,360)
-    rstest(180,360)
+    #mktest()

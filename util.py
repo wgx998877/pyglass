@@ -31,8 +31,8 @@ def appendhdf(filename, table='', row=0, data=[]):
 
 def ll2xy(lat, lon, sat='avhrr'):
     if sat == 'avhrr':
-        x = 1 + (8998 - lat * 100)/5
-        y = 1 + (lon * 100 + 17998)/5
+        x = 0 + (8998 - lat * 100.0)/5
+        y = 0 + (lon * 100.0 + 17998)/5
     x = int(x)
     y = int(y)
     return x, y

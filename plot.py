@@ -2,6 +2,28 @@
 # coding=utf-8
 import matplotlib.pyplot as plt
 import cal
+import numpy as np
+
+def image(f ,height, width, save=False):
+    try:
+        d = np.fromfile('gd.dem', dtype=np.int16)
+        r = np.fromfile(f)
+        for i in range(len(r)):
+            if d[i] == 0:
+                r[i] = 0
+        r = r.reshape(height, width)
+        plt.clf()
+        plt.imshow(r)
+        plt.colorbar()
+        if save:
+            plt.savefig(f+'.png')
+        else:
+            plt.show()
+        return True
+    except Exception, e:
+        print e
+        return False
+    
 
 def point_daily(heat=False, ex=False):
     f = 'out_daily'
