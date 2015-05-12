@@ -2,7 +2,7 @@
 #!/usr/bin/python
 # Filename: cal.py
 # Author: wgx
-import numpy as np
+#import numpy as np
 import math
 alp = 10000
 
@@ -36,6 +36,7 @@ def bias(x,y,k=1,b=1):
         cnt += 1
         r += (y[i]-x[i])
     return r/float(cnt)
+    
 def rmse(x,y):
     if len(x)==0:
 	return -1
@@ -83,7 +84,77 @@ def mk(x):
     else :
         Zc = 0
     return Zc
-   
+
+def mka(x):
+    n = len(x)
+    m = []
+    for i in range(n):
+        mm = 0
+        for j in range(i):
+            if x[i] > x[j]:
+                mm += 1
+        m. append(mm)
+    d = m[0]
+    uf = []
+    for k in range(2, n+1):
+        d += m[k-1]
+        E = k*(k-1)/4
+        v = k*(k-1)*(2*k+5)/72
+        ufk = (d - E) / (v ** 0.5)
+        uf.append(ufk)
+    ub = uf[::-1]
+    return uf ,ub
+    
+def wavelet(t='haar', x=[], a=2):
+    class haar:
+        def u(self, t):
+            if t >= 0 and t < 0.5:
+                return 1.0
+            elif t >= 0.5 and t < 1:
+                return -1.0
+            else :
+                return 0
+        def un(self, t):
+            return self.u(t)
+    class marr:
+        a = (2.0/(((math.pi**0.5)*3.0)**0.5))
+        def u(self, t):
+            return a*(1-t*t)*math.exp((-t*t/2.0))
+            
+        def un(self, t):
+            return self.u(t)
+    class morlet:
+        def u(self, t, w0=6):
+            return math.exp(-t*t/2.0) * (math.pi ** -0.25) * math.cos(w0*t)#(complex(math.cos(w0*t), math.sin(w0*t)))
+        def un(self, t, w0=6):
+            return math.exp(-t*t/2.0) * (math.pi ** -0.25) * math.cos(w0*t)#(complex(math.cos(w0*t), math.sin(w0*t)))
+    class gauss:
+        def u(self, t):
+            return -(t*math.exp(-t*t/2.0))/((2.0*math.pi)**0.5)
+        def un(self, t):
+            return self.u(t)
+    n = len(x)
+    if t == 'haar':
+        func = haar()
+    elif t == 'marr':
+        func = marr()
+    elif t == 'morlet':
+        func = morlet()
+    elif t == 'gauss':
+        func = gauss()
+    else :
+        raise NameError("%s wavelet not set" % t)
+    s = fabs(a) ** (-0.5)
+    r = []
+    for b in range(1, n+1):
+        rr = 0
+        for i in range(n):
+            rr += (x[i] * func.un(float(n - b)/float(a)))
+        rr = rr * s
+        r.append(rr)
+    return r
+    
+    
 def RS(x):
     n = len(x)
     if n <= 0 : return
