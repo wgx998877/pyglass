@@ -38,6 +38,14 @@ def ll2xy(lat, lon, sat='avhrr'):
     return x, y
 # print ll2xy(89.98, -179.98)
 
+def xy2ll(x, y, sat='avhrr'):
+    if sat == 'avhrr':
+        lat = (8998 - 5.0*x)/100.0
+        lon = (5.0*y - 17998)/100.0
+    lat = float(lat)
+    lon = float(lon)
+    return lat, lon
+    
 
 def readBinary(filename, dtype=float, size=-1):
     file = np.fromfile(filename, dtype=dtype, count=size)

@@ -2,8 +2,9 @@
 #!/usr/bin/python
 # Filename: cal.py
 # Author: wgx
-#import numpy as np
+import numpy as np
 import math
+from scipy import interpolate
 alp = 10000
 
 def leastsq(x,y):
@@ -154,6 +155,13 @@ def wavelet(t='haar', x=[], a=2):
         r.append(rr)
     return r
     
+def cubic_spline(x, y, xnew):
+    n = len(x)
+    x = np.arange(n)
+    tck = interpolate.splrep(x, y, s=0)
+    t = float(t)
+    ynew = interpolate.splev(xnew, tck, der=0)
+    return ynew
     
 def RS(x):
     n = len(x)
