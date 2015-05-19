@@ -101,13 +101,67 @@ def get_month_data(year=0, last=0):
                 si = j
                 break
         if year == 0 or (year + last <= y and year - last >= y):
-            if r > 9900000:
-                print 'error data:', id, y, m, r
+            if r > 30000:
+                #print 'error data:', id, y, m, r
                 continue
             if si == site():
                 print 'unkown site', id
                 continue
             s.append([id, si.lat, si.lon, si.alt, y, m, r])
+    return s
+    
+def get_year_data(year=0, last=0):
+    m = get_month_data(year=year, last=last)
+    s = []
+    td = {}
+    for i in m:
+        y = i[4]
+        month = i[5]
+        r = i[6]
+        del i[6]
+        del i[5]
+        del i[4]
+        i = str(i)
+        if i in td:
+            if y in td[i]:
+                td[i][y][month] = r
+            
+                td[i][y]['total'] += r
+                td[i][y]['mc'] += 1
+                td[i][y]['ave'] = float(td[i][y]['total']) / (1.0*td[i][y]['mc'])
+            else:
+                td[i][y] = {month:r,'total':r,'mc':1,'ave':r}
+        else :
+            td[i] = {y:{month:r,'total':r,'mc':1,'ave':r}}
+    for i in td:
+        tmp = eval(i)
+        td[i]['range'] = [min(td[i].keys()), max(td[i].keys())]
+        tmp.append(td[i])
+        s.append(tmp)
+    return s
+    
+def get_year_data_full(year=0, last=0):
+    m = get_month_data(year=year, last=last)
+    s = []
+    td = {}
+    for i in m:
+        month = i[5]
+        r = i[6]
+        del i[6]
+        del i[5]
+        i = str(i)
+        if i in td:
+            td[i][month] = r
+            td[i]['total'] += r
+            td[i]['mc'] += 1
+            td[i]['ave'] = float(td[i]['total']) / (1.0*td[i]['mc'])  
+        else :
+            td[i] = {month:r,'total':r,'mc':1,'ave':r}
+    for i in td:
+        tmp = eval(i)
+        tmp['range'] = [min(tmp.keys()), max(tmp.keys())]
+        tmp.append(td[i])
+        s.append(tmp)
     return s
 '''
 sites = []
