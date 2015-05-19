@@ -28,7 +28,7 @@ def image(f ,height, width, save=False):
 def point_daily(heat=False, ex=False):
     f = 'out_daily'
     if ex :
-        f = 'out_daily_ex1'
+        f = 'out_daily_ex'
     fr = open(f)
     x,y = [], []
     data = []
@@ -48,7 +48,7 @@ def point_daily(heat=False, ex=False):
         plt.imshow(hmimg, aspect='auto',origin='lower')
     else:
         plt.plot(x, y, '.',alpha = 0.5)
-    print cal.leastsq(x,y)
+    #print cal.leastsq(x,y)
     plt.text(280,120, "num = " + str(len(x)))
     plt.text(280,90, "bias = "+str(cal.bias(x,y)))
     plt.text(280,60, "rmse = "+str(cal.rmse(x,y)))
@@ -94,3 +94,9 @@ def point_monthly(heat=False):
 
 def point(x,y):
     pass
+    
+if __name__ == "__main__":
+
+    point_daily(heat=False, ex=True)
+
+    #point_monthly(heat=False)

@@ -2,9 +2,13 @@
 #!/usr/bin/python
 # Filename: cal.py
 # Author: wgx
-import numpy as np
 import math
-from scipy import interpolate
+try:
+    import numpy as np
+    from scipy import interpolate
+    from scipy.interpolate import interp1d
+except:
+    print 'no numpy or scipy'
 alp = 10000
 
 def leastsq(x,y):
@@ -92,15 +96,15 @@ def mka(x):
     for i in range(n):
         mm = 0
         for j in range(i):
-            if x[i] > x[j]:
+            if x[i] >= x[j]:
                 mm += 1
         m. append(mm)
     d = m[0]
     uf = []
     for k in range(2, n+1):
-        d += m[k-1]
-        E = k*(k-1)/4
-        v = k*(k-1)*(2*k+5)/72
+        d += m[k-1]*1.0
+        E = k*(k-1)/4.0
+        v = k*(k-1)*(2*k+5)/72.0
         ufk = (d - E) / (v ** 0.5)
         uf.append(ufk)
     ub = uf[::-1]
@@ -145,21 +149,89 @@ def wavelet(t='haar', x=[], a=2):
         func = gauss()
     else :
         raise NameError("%s wavelet not set" % t)
-    s = fabs(a) ** (-0.5)
+    s = math.fabs(a) ** (-0.5)
     r = []
     for b in range(1, n+1):
         rr = 0
         for i in range(n):
-            rr += (x[i] * func.un(float(n - b)/float(a)))
+            rr += (x[i]* 1.0 * func.un((n*1.0 - b*1.0)/float(a)))
         rr = rr * s
+        print rr,s
         r.append(rr)
     return r
     
-def cubic_spline(x, y, xnew):
+def sd(x, y0, y1):
     n = len(x)
-    x = np.arange(n)
+    k = 0
+    for i in range(n):
+        if y0[i] == 0:
+            continue
+        k += (float(y0[i]) - float(y1[i])) ** 2 / float(y0[i]*y0[i])
+    return k
+    
+def fm(x, y):
+    n = len(x)
+    xmax, ymax = [], []
+    xmin, ymin = [], []
+    xmax.append(x[0])
+    ymax.append(y[0])
+    xmin.append(x[0])
+    ymin.append(y[0])
+    '''
+    if y[0] > y[1]:
+        xmax.append(x[0])
+        ymax.append(y[0])
+    elif y[0] < y[1]:
+        xmin.append(x[0])
+        ymin.append(y[0])
+    ''' 
+    for i in range(1, n-1):
+        if y[i] > y[i-1] and y[i] > y[i+1]:
+            xmax.append(x[i])
+            ymax.append(y[i])
+        if y[i] < y[i-1] and y[i] < y[i+1]:
+            xmin.append(x[i])
+            ymin.append(y[i])
+    xmax.append(x[n-1])
+    ymax.append(y[n-1])
+    xmin.append(x[n-1])
+    ymin.append(y[n-1])
+    '''        
+    if y[n-1] > y[n-2]:
+        xmax.append(x[n-1])
+        ymax.append(y[n-1])
+    elif y[n-1] < y[n-2]:
+        xmin.append(x[n-1])
+        ymin.append(y[n-1])
+    '''
+    return xmin, ymin, xmax, ymax
+    
+def cubic_spline_new(x, y, xnew):
+    n = len(x)
+    if n <= 2:
+        f = interp1d(x, y, kind='slinear')
+    elif n == 3:
+        f = interp1d(x, y, kind='quadratic')
+        '''
+        import matplotlib.pyplot as plt
+        #plt.plot(years,result,'r')
+        plt.plot(x,y,'r',label='1')
+        plt.plot(xnew,f(xnew),'b',label='2')
+        plt.legend()
+        plt.show()
+        '''
+    elif n > 3:
+        return cubic_spline(x, y, xnew)
+        f = interp1d(x, y, kind='cubic')
+    else:
+        return []
+    ynew = f(xnew)
+    #tck = interpolate.splrep(x, y, s=0)
+    #ynew = interpolate.splev(xnew, tck, der=0)
+    return ynew.tolist()
+    
+def cubic_spline(x, y, xnew):
     tck = interpolate.splrep(x, y, s=0)
-    t = float(t)
     ynew = interpolate.splev(xnew, tck, der=0)
     return ynew
     

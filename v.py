@@ -190,7 +190,7 @@ def mktest():
         
     
 if __name__ == "__main__":
-    rstest()
+    #rstest()
     #daily()
     #daily_ex()
     #monthly()
