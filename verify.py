@@ -4,7 +4,9 @@
 from data.site_data import *
 from util import *
 from cal import *
-
+import copy
+import matplotlib.pyplot as plt
+import math
 sat = 'avhrr'
 def daily():
     filelist = 'G:\\File_Gen2\\daily_integrated\\filelist.txt'
@@ -195,7 +197,19 @@ def mktest(row=3600, col=7200):
             r[i,j]= t
     r.tofile("mk.bin")
 
+def get_site_year_detail():
+    s = get_year_data()
+    sx = []
+    for i in s:
+        if i[4]['range'][0]>1961 or i[4]['range'][1]<2010:
+            continue
+        #del i[4]['range']
+        sx.append(i)
+    return sx
+    
+    
 def get_site_year_data():
+    #fo = open('site_info.txt', 'w')
     s = get_year_data()
     sx = []
     for i in s:
@@ -203,6 +217,40 @@ def get_site_year_data():
             continue
         del i[4]['range']
         sx.append(i)
+        #info = "%s,%f,%f\n" % (i[0], i[1], i[2])
+        #fo.write(info)
+    print "get site num : %d" % len(sx)
+    r = {}
+    result = []
+    count = {}
+    for i in sx:
+        #print i[1],i[2]
+        i = i[4]
+        for j in i:
+            if j not in range(1961,2011):
+                continue
+            if j not in r:
+                r[j] = 0
+                count[j] = 1
+            r[j] += i[j]['ave']
+            count[j] += 1
+    for i in r:
+        result.append(r[i]/float(count[i]))
+    ave = sum(result)*1.0/len(result)
+    for i in range(len(result)):
+        result[i] -= ave
+    years = r.keys()
+    return years, result
+
+def get_site_month_data():
+    s = get_year_data()
+    sx = []
+    for i in s:
+        if i[4]['range'][0]>1961 or i[4]['range'][1]<2010:
+            continue
+        del i[4]['range']
+        sx.append(i)
+        print i
     print "get site num : %d" % len(sx)
     r = {}
     result = []
@@ -211,25 +259,39 @@ def get_site_year_data():
         for j in i:
             if j not in range(1961,2011):
                 continue
-            if j not in r:
-                r[j] = 0
-            r[j] += i[j]['ave']
+                
+            for k in i[j]:
+                if not isinstance(k, int):continue
+                st = "%04d%02d" % (j, k)
+                if st not in r:
+                    r[st] = 0
+                r[st] += i[j][k]
+    r = sorted(r.items() ,key= lambda d:d[0])
+    years = []
     for i in r:
-        result.append(r[i])
-    ave = sum(result)*1.0/len(result)
-    for i in range(len(result)):
-        result[i] -= ave
-    years = r.keys()
+        years.append(int(i[0]))
+        result.append(i[1]/float(len(sx)))
+    #ave = sum(result)*1.0/len(result)
+    #for i in range(len(result)):
+    #    result[i] -= ave
     return years, result
 
-def site_emd():
+def site_emd_month():
     years, result = get_site_year_data()
+    print len(result)
+    years, result = get_site_month_data()
+    print len(result)
+    return 
+    import matplotlib.pyplot as plt
+    plt.plot(years,result,'r')
+    plt.show()
+    #return 
     n = len(result)
     c = []
     cn = 7
     sd_max = 300
-    alp = 0.3
-    xdel = 0.05 
+    alp = 0.25
+    xdel = 0.05
     xnew = np.arange(min(years), max(years)+1, xdel)
     xnew = xnew[:-1/xdel+1]
     Y = result[:]
@@ -245,7 +307,8 @@ def site_emd():
             #print len(xmin),len(ymin), len(xmax), len(ymax)
             #print (xmin),(ymin), (xmax), (ymax)
             if len(xmin) < 4 or len(xmax) < 4:
-                break
+                print (xmin),(ymin), (xmax), (ymax)
+                #break
             symin = cubic_spline_new(x = xmin, y = ymin,xnew = xnew)
             symax = cubic_spline_new(x = xmax, y = ymax,xnew = xnew)
             smean = []
@@ -258,7 +321,7 @@ def site_emd():
             print i, j, SD
             if SD <= alp: 
                 break
-            h0 = h1[:]
+            h0 = copy.deepcopy(h1)
         if len(h1) == 0:
             c.append(Y[:])
             break
@@ -283,6 +346,73 @@ def site_emd():
     plt.show()
     return
     
+def site_emd():
+    years, result = get_site_year_data()
+    n = len(result)
+    c = []
+    cn = 7
+    sd_max = 300
+    alp = 0.2
+    xdel = 0.05 
+    xnew = np.arange(min(years), max(years)+1, xdel)
+    xnew = xnew[:-1/xdel+1]
+    Y = result[:]
+    c.append(Y[:])
+    for i in range(cn):
+        h0 ,h1 = Y[:], []
+        print i, len(h0), len(h1)
+        for j in range(sd_max): 
+            xmin, ymin, xmax, ymax = fm(years, h0)
+            h1 = []
+            #print len(xmin),len(ymin),len(xmax),len(ymax)
+            #y = cubic_spline(x = years, y = h0,xnew = xnew)
+            #print len(xmin),len(ymin), len(xmax), len(ymax)
+            #print (xmin),(ymin), (xmax), (ymax)
+            if len(xmin) < 3 or len(xmax) < 3:
+                break
+            symin = cubic_spline_new(x = xmin, y = ymin,xnew = xnew)
+            symax = cubic_spline_new(x = xmax, y = ymax,xnew = xnew)
+            smean = []
+            nn = len(xnew)
+            for k in range(nn):
+                smean.append( (symin[k] + symax[k])/2.0)
+            for k in range(n):
+                h1.append(h0[k] - smean[int(k/xdel)])
+            SD = sd(years, h0, h1)
+            if SD <= alp: 
+                break
+            h0 = copy.deepcopy(h1)
+        if len(h1) == 0:
+            c.append(Y[:])
+            break
+        c.append(h1[:])
+        print len(h1)
+        #break
+        for k in range(n):
+            Y[k] -= h1[k]
+    color = ['r', 'b', 'g', 'k', 'm', 'c', 'y', '--','--']
+    #return
+    import matplotlib.pyplot as plt
+    #plt.plot(years,result,'r')
+    plt.figure(1)
+    plt.suptitle("CMA 54 stations SW data EMD-IMF")
+    C = c[0]
+    for i in range(len(c)):
+        print len(c[i])
+        num = int ("%d1%d" % (len(c), i+1))
+        plt.subplot(num)
+        print num
+        plt.plot(years,c[i],color[i],label=str(i))
+        if i>0:
+            for j in range(len(c[i])):
+                C[j] += c[i][j]
+    num = int ("%d1%d" % (len(c), 1))
+    plt.subplot(num)
+    plt.plot(years,C,color[i+1],label=str(i+1))
+    #plt.legend()
+    plt.show()
+    return
+    
     import matplotlib.pyplot as plt
     plt.plot(years,result,'r')
     plt.plot(xmin,ymin,'go')
@@ -303,6 +433,28 @@ def site_wavelet():
     #plt.plot(years,result,'r')
     plt.plot(years,y,'b')
     plt.show()
+
+def site_yt_check():
+    years, result = get_site_year_data()
+    result = np.asarray(result)
+    std = result.std()
+    mean = result.mean()
+    t = 10
+    r = []
+    x = range(t,len(result)-t)
+    for i in x:
+        yb = result[i-t:i].mean()
+        ya = result[i+1:i+1+t].mean()
+        sa = result[i-t:i].std()
+        sb = result[i+1:i+1+t].std()
+        y = math.fabs(yb-ya)*1.0/float(sa+sb)
+        r.append(y)
+    plt.clf()
+    plt.title('Yamamoto Test')
+    plt.plot(years[t:-t],r)
+    plt.plot([1960+t,2010-t],[1,1],'--')
+    plt.show()
+        
     
 def site_mk_check():
     years, result = get_site_year_data()
@@ -312,8 +464,12 @@ def site_mk_check():
     print k,b
     ky = [i*1.0*k+b for i in range(n)]
     print len(ua),len(ub),len(years)
+    result = np.asarray(result)
+    print result.mean()
+    print result.std()
+    print result.max()
+    print result.min()
     #return 
-    import matplotlib.pyplot as plt
     fig, ax1 = plt.subplots()
     ax1.plot(years, result,'or--')
     ax1.plot(years,ky,':',color='black')
@@ -330,16 +486,105 @@ def site_mk_check():
              arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
     #plt.plot(years, result,'r',years[1:],ua,'b',years[1:],ub,'g')
     plt.title('CMA 54 stations SW data')
+    ax2.plot([years[0],years[-1]],[1.96,1.96],'--y')
+    ax2.plot([years[0],years[-1]],[-1.96,-1.96],'--y')
     plt.show()
-    
     #print sx[0]
     
+def site_mode():
+    years, result = get_site_year_data()
+    site = {}
+    for i in range(len(years)):
+        site[years[i]] = result[i]
+    model = {}
+    for i in open('tmp_mode'):
+        i = i.strip().split(',')
+        model[int(i[0])] = float(i[1])
+    x = []
+    y1, y2 = [], []
+    for i in range(len(years)):
+        i = years[i]
+        if i not in model:break
+        x.append(i)
+        y1.append(site[i])
+        y2.append(model[i])
+    print len(x),len(y1),len(y2)
+    #plt.plot(y1,y2,'o')
+    #plt.show()
+    #return
+    import pywt.cwt
+    plt.plot(x, y1,label='site data y1')
+    plt.plot(x, y2,label='model data y2')
+    
+    #plt.plot(y1, y2,'o')
+    scales = range(2, 129, 2)
+    c = pywt.cwt.cwt(y1, wavelet='morlet', scales=scales, data_step=x[1]-x[0], precision=16)
+    c = np.asarray(c).real
+    plt.plot(x,c[scales.index(16)],label='y1 a = 16')
+    #plt.plot(x,c[scales.index(32)],label='y1 a = 16')
+    c = pywt.cwt.cwt(y2, wavelet='morlet', scales=scales, data_step=x[1]-x[0], precision=16)
+    c = np.asarray(c).real
+    plt.plot(x,c[scales.index(16)],label='y2 a = 16')
+    #plt.plot(x,c[scales.index(32)],label='y2 a = 16')
+    plt.legend(loc='best')
+    plt.show()
+    print years
+
+def site_detail():
+    sx = get_site_year_detail()
+    for s in sx:
+        id = s[0]
+        lat = s[1]
+        lon = s[2]
+        r = s[4]
+        #print id, r['range']
+        x = range(r['range'][0], r['range'][1])
+        #print x
+        y = []
+        
+        for i in x[:]:
+            if i in r:
+                y.append(r[i]['ave'])
+            else:
+                x.remove(i)
+        y = anomaly(y)
+        dt = 1985-r['range'][0]
+        y = y[dt:dt+20]
+        print lat,lon,leastsq(range(len(y)),y)[0]
+        
+        continue
+        y2 = getWV(y)
+        ua, ub = mka(y)
+        u = []
+        for i in range(len(ua)):
+            u.append(ua[i]-ub[i])
+        ux = getZeros(u)
+        print lat, lon, ux
+        for i in ux:
+            if i in range(20,40):
+                #print lat, lon, i
+                break
+        plt.clf()
+        plt.plot(x,y)
+        plt.plot(x,y2)
+        #plt.plot(x[1:],ua)
+        #plt.plot(x[1:],ub)
+        plt.plot(x[1:],u)
+        plt.plot([min(x),max(x)],[0,0])
+        plt.title(id)
+        #plt.show()
+        
+    
 if __name__ == "__main__":
+    #site_detail()
+    site_mode()
+    #site_emd_month()   
     #site_emd()
     #site_wavelet()
+    #site_yt_check()
     #site_mk_check()
     #daily()
-    daily_ex()
+    #daily_ex()
     #monthly()
     #check_daily_ex()
     #mktest(180,360)

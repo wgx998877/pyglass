@@ -110,6 +110,34 @@ def get_month_data(year=0, last=0):
             s.append([id, si.lat, si.lon, si.alt, y, m, r])
     return s
     
+def get_month_data_site(year=0, last=0):
+    sites = get_site_info()
+    f = open(dpath + '/site_txt/site_month_data.txt')
+    f.readline()
+    s = []
+    si = site()
+    days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    for i in f:
+        i = i.strip().split(',')
+        id, y, m, r = i[0], int(i[1]), int(i[2]), i[3]
+        if y % 400 == 0 or (y % 100 != 0 and y % 4 == 0):
+            days[2] = 29
+        r = float(r)
+        r = r * 10000.0 / 3600.0 / 24.0 / float(days[m])
+        for j in sites:
+            if j.id == id:
+                si = j
+                break
+        if year == 0 or (year + last <= y and year - last >= y):
+            if r > 30000:
+                #print 'error data:', id, y, m, r
+                continue
+            if si == site():
+                print 'unkown site', id
+                continue
+            s.append([id, si.lat, si.lon, si.alt, y, m, r])
+    return s
+    
 def get_year_data(year=0, last=0):
     m = get_month_data(year=year, last=last)
     s = []
