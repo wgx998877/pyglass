@@ -4,6 +4,7 @@
 # Author: wgx
 import math
 from math import sin,cos
+import matplotlib.pyplot as plt
 import math.pi as pi
 try:
     import numpy as np
@@ -33,41 +34,42 @@ def leastsq(x,y):
     return k,b   #返回拟合的两个参数值
 def bias(x,y,k=1,b=1):
     if len(x)==0:
-	return -1
+    return -1
     r = 0.0
     n = len(x)
     cnt = 0
     for i in xrange(n):
-	if abs(y[i]-x[i])>alp:
-	    continue
+    if abs(y[i]-x[i])>alp:
+        continue
         cnt += 1
         r += (y[i]-x[i])
     return r/float(cnt)
     
 def rmse(x,y):
     if len(x)==0:
-	return -1
+    return -1
     s = 0.0
     n = len(x)
     cnt = 0
     for i in xrange(n):
-	if abs(y[i]-x[i])>alp:
-	    continue
+        if abs(y[i]-x[i]) > alp:
+            continue
         s += (x[i]-y[i])**2
-        cnt += 1 
-    s/=float(cnt)
+        cnt += 1
+    s /= float(cnt)
     return s ** 0.5
+
 def r2(x,y):
     if len(x)==0:
-	return -1
+        return -1
     t2 = 0.0
     x2 = 0.0
     y2 = 0.0
     mx = sum(x)/len(x)
     my = sum(y)/len(y)
     for i in xrange(len(x)):
-	if abs(y[i]-x[i])>alp:
-	    continue
+        if abs(y[i]-x[i])>alp:
+            continue
         t2 += (x[i]-mx)*(y[i]-my) 
         x2 += (x[i]-mx)**2
         y2 += (y[i]-my)**2
@@ -92,7 +94,7 @@ def mk(x):
         Zc = 0
     return Zc
 
-def mka(x):
+def calMka(x):
     n = len(x)
     m = []
     for i in range(n):
@@ -111,7 +113,12 @@ def mka(x):
         uf.append(ufk)
     ub = uf[::-1]
     return uf ,ub
-    
+
+def mka(x):
+    xr = x[::-1]
+    ua, ub = calMka(x), calMka(xr)
+    return ua, ub
+
 def wavelet(t='haar', x=[], a=2):
     class haar:
         def u(self, t):
@@ -288,11 +295,11 @@ def RS(x):
             s+=x[j]
             X.append((s-(j+1)*es))
         rt = max(X[:t])*1.0 - min(X[:t])*1.0
-        RS.append(math.log(rt*1.0/st))      
+        RS.append(math.log(rt*1.0/st))
         XS.append(math.log(t))
     return leastsq(XS, RS)
    
-def pca(data,topNfeat=999999):
+def pca(data, topNfeat=999999):
     meanV = np.mean(data,axis=0)
     meanR = data - meanV
     covM = np.cov(meanR,rowvar=0)
@@ -302,52 +309,126 @@ def pca(data,topNfeat=999999):
     redEVec = eVec[:,eValInd]
     lowData = meanR * redEVec
     reconMat = (lowData * redEVec.T) + meanV
-    return lowData,reconMat
-    
+    return lowData, reconMat
     
     
 def integrateSin0(trise, tset, t1, PAR1):
-	temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
+    temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
     result = temp *2
-	if result < 0:
-		return 0.0
-	else:
+    if result < 0:
+        return 0.0
+    else:
         return result
 
 
 def integrateSin1(double trise, double tset, double t1, double PAR1):
-	temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
-	result = temp * ( 1 - cos( (t1-trise) * pi / (tset-trise) ) )
-	if result < 0.:
-		return 0.0
-	else :
+    temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
+    result = temp * ( 1 - cos( (t1-trise) * pi / (tset-trise) ) )
+    if result < 0.:
+        return 0.0
+    else :
         return result
 
 def integrateSin2(double trise, double tset, double t2, double PAR2):
-	double temp, result
-	temp = PAR2 * (tset-trise) / pi / sin( (t2-trise) * pi / (tset-trise) )
-	result = temp * ( cos( (t2-trise) * pi / (tset-trise)) + 1 )
-	if result < 0.:
-		return 0.0
-	else :
+    double temp, result
+    temp = PAR2 * (tset-trise) / pi / sin( (t2-trise) * pi / (tset-trise) )
+    result = temp * ( cos( (t2-trise) * pi / (tset-trise)) + 1 )
+    if result < 0.:
+        return 0.0
+    else :
         return result
 
 def integrateXSin(double tr, double ts, double t1, double t2, double R1, double R2):
-	term1 = cos(pi*(t1-tr)/(tr-ts))
-	term2 = cos(pi*(t2-tr)/(tr-ts))
-	term3 = 1./ sin(pi*(t2-tr)/(tr-ts))
-	term4 = 1./sin(pi*(t1-tr)/(-tr+ts))
-	term5 = sin(pi*(t1-tr)/(tr-ts)
-	term6 = sin(pi*(t2-tr)/(tr-ts))
-	
-	temp1 = R2 * t1 * (tr-ts) * (term1-term2) * term3/pi/(t1-t2)
-	temp2 = R1 * t2 * (tr-ts) * (term1 - term2)* term4/pi/(t1-t2)
-	temp3 = (R1*(tr-ts)*term4*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
-	temp4 = (R2*(tr-ts)*(-term3)*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
-	
-	result = temp1+temp2+temp3-temp4
-	if result < 0.:
-		return 0.0
-	else :
+    term1 = cos(pi*(t1-tr)/(tr-ts))
+    term2 = cos(pi*(t2-tr)/(tr-ts))
+    term3 = 1./ sin(pi*(t2-tr)/(tr-ts))
+    term4 = 1./sin(pi*(t1-tr)/(-tr+ts))
+    term5 = sin(pi*(t1-tr)/(tr-ts)
+    term6 = sin(pi*(t2-tr)/(tr-ts))
+    
+    temp1 = R2 * t1 * (tr-ts) * (term1-term2) * term3/pi/(t1-t2)
+    temp2 = R1 * t2 * (tr-ts) * (term1 - term2)* term4/pi/(t1-t2)
+    temp3 = (R1*(tr-ts)*term4*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
+    temp4 = (R2*(tr-ts)*(-term3)*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
+    
+    result = temp1+temp2+temp3-temp4
+    if result < 0.:
+        return 0.0
+    else :
         return result;
 
+
+def ApEn(x, m=2, r=-1):
+    if len(x) == 0:
+        return None
+    x = np.asarray(x)
+    if r == -1:
+        r = 0.15 * np.std(x)
+    return calAE(x, m, r) - calAE(x, m+1, r)
+
+def calAE(x, m, r):
+    n = len(x)
+    tn = n - m + 1
+    ux = np.zeros((tn, m))
+    for i in xrange(tn):
+        for j in range(m):
+            ux[i, j] = x[i + j]
+    d = np.zeros((tn, tn))
+    c = np.zeros(tn)
+    lnc = np.zeros(tn)
+    ret = 0
+    
+    for i in xrange(tn):
+        for j in xrange(tn):
+            for k in range(m):
+                tmp = np.fabs(ux[i, k] - ux[j, k])
+                if d[i, j] < tmp:
+                    d[i, j] = tmp
+                    
+    for i in xrange(tn):
+        t = 0.0
+        for j in xrange(tn):
+            if d[i, j] <= r:
+                t += 1.0
+        c[i] = float(t) / float(tn)
+        lnc[i] = math.log(c[i])
+        ret += lnc[i]
+    ret = float(ret) * 1.0 / float(tn)
+    return ret
+    
+def mt(x, slen):
+    n = len(x)
+    tn = n - slen * 2
+    t = []
+    for i in range(tn):
+        x1 = x[i:i+slen]
+        x2 = x[i+slen:i+slen*2]
+        x1ave = np.mean(x1)
+        x2ave = np.mean(x2)
+        x1var = np.var(x1)
+        x2var = np.var(x2)
+        s = np.sqrt((float(slen) * x1var + float(slen) * x2var) / float(slen+slen-2))
+        tmp = (x1ave - x2ave) / (s * np.sqrt(2.0/float(slen)))
+        t.append(tmp)
+    return t
+
+def TestApEnMt():
+    n = 2000
+    x1 = range(1, n+1)
+    y1 = []
+    y1a = []
+    for i in range(n/2):
+        y1.append(math.sin(0.2*x1[i]) * 2 + 1)
+    for i in range(n/2):
+        y1.append(math.sin(0.2*x1[i+1000]) * 1.5 + math.cos(0.5*x1[i+1000])*2 -0.5)
+    plt.plot(x1, y1)
+    plt.show()
+    y1a = mt(y1, 100)
+    plt.plot(x1[:1800], y1a)
+    plt.show()
+    for i in range(n-200):
+        tmpx = y1[i:i+200]
+        yt = ApEn(tmpx)
+        y1a.append(yt)
+    plt.plot(x1[100:1900], y1a)
+    plt.show()
