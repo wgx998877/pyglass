@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import math
 sat = 'avhrr'
 def daily():
-    filelist = 'G:\\File_Gen2\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     sites = get_daily_data(2010)
@@ -48,7 +48,7 @@ def daily_ex(filelist = "..\\station_data"):
             sites[siteid][t] = float(i[3])
         fr.close()
     print 'site_info_ex done!'
-    filelist = 'G:\\File_Gen1\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     #sites = get_daily_data(2010)
@@ -91,7 +91,7 @@ def check_daily_ex(filelist = "..\\station_data"):
             sites[siteid][t] = float(i[3])
         fr.close()
     print 'site_info_ex done!'
-    filelist = 'G:\\File_Gen2\\daily_integrated\\filelist.txt'
+    filelist = 'G:\\File_Gen\\daily_integrated\\filelist.txt'
     field = 'DSSR_daily_integrated'
     files = readTxt(filelist)
     #sites = get_daily_data(2010)
@@ -121,7 +121,7 @@ def check_daily_ex(filelist = "..\\station_data"):
     return result
     
 def monthly():
-    filelist = "G:\\File_Gen2\\monthly_integrated\\filelist.txt"
+    filelist = "G:\\File_Gen\\monthly_integrated\\filelist.txt"
     field = "DSSR_monthly_integrated"
     files = readTxt(filelist)
     sites = get_month_data(2010)
@@ -208,12 +208,32 @@ def get_site_year_detail():
     return sx
     
     
+def w_data():
+    y = get_year_data()
+    fo = open('cma2.out', 'w')
+    lines = []
+    for i in y:
+        id = i[0]
+        lat = i[1]
+        lon = i [2]
+        alt = i[3]
+        for year in i[4]:
+            if year == 'range':continue
+            data = i[4][year]
+            ave = data['ave']
+            line = "%s,%f,%f,%f,%d,%f\n" % (id,lat,lon,alt,year,ave)
+            fo.write(line)
+            lines.append(line)
+    fo.close()
+    print y[0]
+
 def get_site_year_data():
     #fo = open('site_info.txt', 'w')
     s = get_year_data()
     sx = []
+    year_b, year_e = 1984, 2008
     for i in s:
-        if i[4]['range'][0]>1961 or i[4]['range'][1]<2010:
+        if i[4]['range'][0]>year_b or i[4]['range'][1]<year_e:
             continue
         del i[4]['range']
         sx.append(i)
@@ -227,7 +247,7 @@ def get_site_year_data():
         #print i[1],i[2]
         i = i[4]
         for j in i:
-            if j not in range(1961,2011):
+            if j not in range(year_b,year_e):
                 continue
             if j not in r:
                 r[j] = 0
@@ -237,11 +257,18 @@ def get_site_year_data():
     for i in r:
         result.append(r[i]/float(count[i]))
     ave = sum(result)*1.0/len(result)
-    for i in range(len(result)):
-        result[i] -= ave
+    #for i in range(len(result)):
+    #    result[i] -= ave
     years = r.keys()
     return years, result
-
+    
+def temp():
+    y,r = get_site_year_data()
+    print r
+    plt.plot(y,r)
+    plt.show()
+    
+    
 def get_site_month_data():
     s = get_year_data()
     sx = []
@@ -492,39 +519,49 @@ def site_mk_check():
     #print sx[0]
     
 def site_mode():
-    years, result = get_site_year_data()
+    years, result = [], []
+    f = open('Asia').readlines()
+    x = []
+    for i in f:
+        i = i.strip().split(',')
+        years.append(int(i[0])-1)
+        result.append(float(i[1]))
+    #years, result = get_site_year_data()
+    result = anomaly(result)
     site = {}
     for i in range(len(years)):
         site[years[i]] = result[i]
+        '''
     model = {}
     for i in open('tmp_mode'):
         i = i.strip().split(',')
         model[int(i[0])] = float(i[1])
+        '''
     x = []
     y1, y2 = [], []
     for i in range(len(years)):
         i = years[i]
-        if i not in model:break
+        #if i not in model:break
         x.append(i)
         y1.append(site[i])
-        y2.append(model[i])
-    print len(x),len(y1),len(y2)
+        #y2.append(model[i])
+    #print len(x),len(y1),len(y2)
     #plt.plot(y1,y2,'o')
     #plt.show()
     #return
     import pywt.cwt
-    plt.plot(x, y1,label='site data y1')
-    plt.plot(x, y2,label='model data y2')
+    plt.plot(x, y1,label='')
+    #plt.plot(x, y2,label='model data y2')
     
     #plt.plot(y1, y2,'o')
     scales = range(2, 129, 2)
     c = pywt.cwt.cwt(y1, wavelet='morlet', scales=scales, data_step=x[1]-x[0], precision=16)
     c = np.asarray(c).real
-    plt.plot(x,c[scales.index(16)],label='y1 a = 16')
-    #plt.plot(x,c[scales.index(32)],label='y1 a = 16')
-    c = pywt.cwt.cwt(y2, wavelet='morlet', scales=scales, data_step=x[1]-x[0], precision=16)
-    c = np.asarray(c).real
-    plt.plot(x,c[scales.index(16)],label='y2 a = 16')
+    plt.plot(x,c[scales.index(16)],label='wavelet a = 16')
+    #plt.plot(x,c[scales.index(32)],label='y a = 32')
+    #c = pywt.cwt.cwt(y2, wavelet='morlet', scales=scales, data_step=x[1]-x[0], precision=16)
+    #c = np.asarray(c).real
+    #plt.plot(x,c[scales.index(16)],label='y2 a = 16')
     #plt.plot(x,c[scales.index(32)],label='y2 a = 16')
     plt.legend(loc='best')
     plt.show()
@@ -576,6 +613,8 @@ def site_detail():
         
     
 if __name__ == "__main__":
+    #temp()
+    #w_data()
     #site_detail()
     site_mode()
     #site_emd_month()   

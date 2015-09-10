@@ -92,11 +92,88 @@ def point_monthly(heat=False):
 
     plt.show()
 
-def point(x,y):
-    pass
+def point(x,y,t='o',title=''):
+    plt.clf()
+    plt.plot(x,y,t)
+    print 'r2', cal.r2(x, y)
+    print 'rmse', cal.rmse(x, y)
+    print 'bias', cal.bias(x, y)
+    print 'k, b', cal.leastsq(x, y)
+    plt.text(270,120, "num = " + str(len(x)))
+    plt.text(270,90, "bias = "+str(cal.bias(x,y)))
+    plt.text(270,60, "rmse = "+str(cal.rmse(x,y)))
+    plt.text(270,30, "r2 = "+str(cal.r2(x,y)))
+    plt.plot([0,450],[0,450], 'black')
+    plt.title(title)
+    
+    plt.show()
+    
+
+def pointsave(x,y,t='o',title='',path=''):
+    plt.clf()
+    plt.plot(x,y,t)
+    print 'r2', cal.r2(x, y)
+    print 'rmse', cal.rmse(x, y)
+    print 'bias', cal.bias(x, y)
+    print 'k, b', cal.leastsq(x, y)
+    plt.title(title)
+    plt.text(270,120, "num = " + str(len(x)))
+    plt.text(270,90, "bias = "+str(cal.bias(x,y)))
+    plt.text(270,60, "rmse = "+str(cal.rmse(x,y)))
+    plt.text(270,30, "r2 = "+str(cal.r2(x,y)))
+    plt.plot([0,450],[0,450], 'black')
+    plt.savefig(path)
+    
+def pointheat(x,y,t='o',title=''):
+    print 'r2', cal.r2(x, y)
+    print 'rmse', cal.rmse(x, y)
+    print 'bias', cal.bias(x, y)
+    print 'k, b', cal.leastsq(x, y)
+    data = []
+    plt.clf()
+    t = 8
+    for i in range(len(x)):
+        data.append([int(float(x[i])+t), int(float(y[i])+t)])
+    from pyheatmap.heatmap import HeatMap
+    hm = HeatMap(data)
+    hm.heatmap(save_as="h.png")
+    hmimg = plt.imread("h.png")
+    plt.imshow(hmimg, aspect='auto',origin='lower')
+    plt.title(title)
+    plt.text(270,120, "num = " + str(len(x)))
+    plt.text(270,90, "bias = "+str(cal.bias(x,y)))
+    plt.text(270,60, "rmse = "+str(cal.rmse(x,y)))
+    plt.text(270,30, "r2 = "+str(cal.r2(x,y)))
+    plt.plot([0,450],[0,450], 'black')
+    plt.xlim(0,450)
+    plt.ylim(0,450)
+    plt.xlabel('BSRN')
+    plt.ylabel('Ceres_result')
+    plt.show()
+    
+def pointheatsave(x,y,t='o',title='',path=''):
+    print 'r2', cal.r2(x, y)
+    print 'rmse', cal.rmse(x, y)
+    print 'bias', cal.bias(x, y)
+    print 'k, b', cal.leastsq(x, y)
+    data = []
+    plt.clf()
+    for i in range(len(x)):
+        data.append([int(float(x[i])+9), int(float(y[i])+9)])
+    from pyheatmap.heatmap import HeatMap
+    hm = HeatMap(data)
+    hm.heatmap(save_as="h.png")
+    hmimg = plt.imread("h.png")
+    plt.imshow(hmimg, aspect='auto',origin='lower')
+    plt.title(title)
+    plt.text(270,120, "num = " + str(len(x)))
+    plt.text(270,90, "bias = "+str(cal.bias(x,y)))
+    plt.text(270,60, "rmse = "+str(cal.rmse(x,y)))
+    plt.text(270,30, "r2 = "+str(cal.r2(x,y)))
+    plt.savefig(path)
     
 if __name__ == "__main__":
 
-    point_daily(heat=False, ex=True)
+    point_daily(heat=True, ex=True)
 
-    #point_monthly(heat=False)
+    #point_monthly(heat=True)

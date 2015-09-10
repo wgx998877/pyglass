@@ -3,14 +3,16 @@
 # Filename: cal.py
 # Author: wgx
 import math
-from math import sin,cos
-import math.pi as pi
+from math import sin,cos,pi
+import util
 try:
     import numpy as np
     from scipy import interpolate
     from scipy.interpolate import interp1d
 except:
     print 'no numpy or scipy'
+import sklearn as skl
+from sklearn import linear_model
 alp = 10000
 
 def leastsq(x,y):
@@ -31,6 +33,7 @@ def leastsq(x,y):
     b = meany - k*meanx
 
     return k,b   #返回拟合的两个参数值
+    
 def bias(x,y,k=1,b=1):
     if len(x)==0:
 	return -1
@@ -57,6 +60,7 @@ def rmse(x,y):
         cnt += 1 
     s/=float(cnt)
     return s ** 0.5
+    
 def r2(x,y):
     if len(x)==0:
 	return -1
@@ -111,6 +115,20 @@ def mka(x):
         uf.append(ufk)
     ub = uf[::-1]
     return uf ,ub
+    
+def line_regr(x,y,return_obj=True):
+    regr = linear_model.LinearRegression(copy_X=True,n_jobs=1)
+    regr.fit(x,y)
+    if return_obj:
+        '''
+        regr.fit # train
+        regr.predict # Xlist
+        regr.score # variance score x,y
+        '''
+        return regr
+        
+    else:
+        return regr.coef_, regr.intercept_
     
 def wavelet(t='haar', x=[], a=2):
     class haar:
@@ -304,50 +322,3 @@ def pca(data,topNfeat=999999):
     reconMat = (lowData * redEVec.T) + meanV
     return lowData,reconMat
     
-    
-    
-def integrateSin0(trise, tset, t1, PAR1):
-	temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
-    result = temp *2
-	if result < 0:
-		return 0.0
-	else:
-        return result
-
-
-def integrateSin1(double trise, double tset, double t1, double PAR1):
-	temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
-	result = temp * ( 1 - cos( (t1-trise) * pi / (tset-trise) ) )
-	if result < 0.:
-		return 0.0
-	else :
-        return result
-
-def integrateSin2(double trise, double tset, double t2, double PAR2):
-	double temp, result
-	temp = PAR2 * (tset-trise) / pi / sin( (t2-trise) * pi / (tset-trise) )
-	result = temp * ( cos( (t2-trise) * pi / (tset-trise)) + 1 )
-	if result < 0.:
-		return 0.0
-	else :
-        return result
-
-def integrateXSin(double tr, double ts, double t1, double t2, double R1, double R2):
-	term1 = cos(pi*(t1-tr)/(tr-ts))
-	term2 = cos(pi*(t2-tr)/(tr-ts))
-	term3 = 1./ sin(pi*(t2-tr)/(tr-ts))
-	term4 = 1./sin(pi*(t1-tr)/(-tr+ts))
-	term5 = sin(pi*(t1-tr)/(tr-ts)
-	term6 = sin(pi*(t2-tr)/(tr-ts))
-	
-	temp1 = R2 * t1 * (tr-ts) * (term1-term2) * term3/pi/(t1-t2)
-	temp2 = R1 * t2 * (tr-ts) * (term1 - term2)* term4/pi/(t1-t2)
-	temp3 = (R1*(tr-ts)*term4*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
-	temp4 = (R2*(tr-ts)*(-term3)*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
-	
-	result = temp1+temp2+temp3-temp4
-	if result < 0.:
-		return 0.0
-	else :
-        return result;
-

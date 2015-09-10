@@ -1,6 +1,10 @@
+#coding:utf-8
 #!/usr/bin/python
 # Filename: util.py
 # Author: wgx
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 import os
 from pyhdf.SD import SD, SDC
 import numpy as np
@@ -33,6 +37,9 @@ def ll2xy(lat, lon, sat='avhrr'):
     if sat == 'avhrr':
         x = 0 + (8998 - lat * 100.0)/5
         y = 0 + (lon * 100.0 + 17998)/5
+    elif sat == 'gewex':
+        x = 90 - int(lat)
+        y = int(lon) + 180
     x = int(x)
     y = int(y)
     return x, y
@@ -132,6 +139,69 @@ def is_r(year):
         r = False
     return r
 
+zhou = np.fromfile('data/zhou',dtype=np.float32).reshape(720,1440)
+def ll2zhou(lat, lon):
+    lat = int ((90 - lat) * 4)
+    lon = int ((lon + 180) * 4)
+    if lat not in range(720) or lon not in range(1440):
+        return 0
+    global zhou
+    #zhou = np.fromfile('data/zhou',dtype=np.float32).reshape(720,1440)
+    ret = int(zhou[lat, lon])
+    if ret == 0:
+        try:
+            sta = [
+            int(zhou[lat-1, lon]),
+            int(zhou[lat, lon-1]),
+            int(zhou[lat-1, lon-1]),
+            int(zhou[lat, lon]),
+            int(zhou[lat+1, lon]),
+            int(zhou[lat, lon+1]),
+            int(zhou[lat-1, lon+1]),
+            int(zhou[lat+1, lon-1]),
+            int(zhou[lat+1, lon+1])]
+            for i in sta:
+               if i != 0:
+                   ret = i
+                   break
+        except:
+            pass
+    return ret
+    
+def xy2zhou(x,y,sat='gewex'):
+    ret = 0
+    global zhou
+    #zhou = np.fromfile('data/zhou',dtype=np.float32).reshape(720,1440)
+    if sat == 'gewex':
+        x *= 4
+        y *= 4
+        try:
+            if zhou[x, y+1] != 0:
+                ret = zhou[x, y+1]
+            if zhou[x+1, y] != 0:
+                ret = zhou[x+1, y]
+            if zhou[x+1, y+1] != 0:
+                ret = zhou[x+1, y+1]
+            if zhou[x, y] != 0:
+                ret = zhou[x, y]
+        except:
+            pass
+    return int(ret)
+    
+def zhoudic():
+    return {1:"North America",2:"Europe+Russia",3:"South America",4:"Africa",5:"Asia",6:"Oceania",7:"Antarctica",0:"Ocean"}
+    return {1:"北美洲",2:"欧洲+俄罗斯",3:"南美洲",4:"非洲",5:"亚洲",6:"大洋洲",7:"南极洲",0:"海洋"}
+#1 北美
+#2 欧洲
+#3 南美
+#4 非洲
+#5 亚洲
+#6 大洋洲
+#7 南极洲
+        
+    
+#from mis import *
+    
 
 class dt():
 
