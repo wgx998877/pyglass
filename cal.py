@@ -3,21 +3,19 @@
 # Filename: cal.py
 # Author: wgx
 import math
-from math import sin,cos,pi
+from math import sin,cos,pi,radians
 import util
-=======
-from math import sin,cos
 import matplotlib.pyplot as plt
-import math.pi as pi
-
 try:
     import numpy as np
-    from scipy import interpolate
+    import scipy.stats
+    from scipy import interpolate, linalg, stats
     from scipy.interpolate import interp1d
 except:
     print 'no numpy or scipy'
 import sklearn as skl
 from sklearn import linear_model
+from sklearn import svm
 alp = 10000
 
 def leastsq(x,y):
@@ -39,22 +37,36 @@ def leastsq(x,y):
 
     return k,b   #返回拟合的两个参数值
     
+    
+def leastsqres(x, y):
+    k, b = leastsq(x,y)
+    n = len(x)
+    s = 0
+    for i in range(n):
+        ym = k*x[i]+b
+        s += math.fabs(ym-y[i])
+    return s
+#slope, intercept, r_value, p_value, std_err
+def leastsqsci(x, y):
+    return scipy.stats.linregress(x, y)
+    
+    
 def bias(x,y,k=1,b=1):
     if len(x)==0:
-    return -1
+        return -1
     r = 0.0
     n = len(x)
     cnt = 0
     for i in xrange(n):
-    if abs(y[i]-x[i])>alp:
-        continue
+        if abs(y[i]-x[i])>alp:
+            continue
         cnt += 1
         r += (y[i]-x[i])
-    return r/float(cnt)
+    return round(r/float(cnt),3)
     
 def rmse(x,y):
     if len(x)==0:
-    return -1
+        return -1
     s = 0.0
     n = len(x)
     cnt = 0
@@ -64,7 +76,7 @@ def rmse(x,y):
         s += (x[i]-y[i])**2
         cnt += 1
     s /= float(cnt)
-    return s ** 0.5
+    return round(s ** 0.5, 3)
     
 def r2(x,y):
     if len(x)==0:
@@ -74,13 +86,18 @@ def r2(x,y):
     y2 = 0.0
     mx = sum(x)/len(x)
     my = sum(y)/len(y)
+    tt = 0
     for i in xrange(len(x)):
         if abs(y[i]-x[i])>alp:
             continue
         t2 += (x[i]-mx)*(y[i]-my) 
         x2 += (x[i]-mx)**2
         y2 += (y[i]-my)**2
-    return (t2/((x2*y2)**0.5))**2
+        tt += ((x[i]-mx)*(y[i]-my)-(x[i]-mx)**2)
+        #print i, x[i]-mx,y[i]-my,(x[i]-mx)*(y[i]-my),(x[i]-mx)**2,tt
+    #print 'r22222222222222', mx, my, t2, x2, y2 
+    return round(t2**2/((x2*y2)),3)
+    #return (t2/((x2*y2)**0.5))**2
     
 def mk(x):
     n = len(x)
@@ -101,6 +118,66 @@ def mk(x):
         Zc = 0
     return Zc
 
+def mv(y, c=12):
+    ret = []
+    for i in range(len(y)-int(c)):
+        ret.append(sum(y[i:i+int(c)])*1.0/c)
+    return ret
+    
+def mon2year(y):
+    l = len(y)
+    yn = l / 12
+    r = []
+    for i in range((yn)):
+        r.append(0)
+    m = 1
+    year = 0
+    for i in y:
+        if m == 13:
+            m = 1
+            r[year] /= 12.0
+            year += 1
+        r[year] += i
+        m += 1
+    return r
+    
+def mon2year_ex(y ,m ,r ,delta = 10):
+    n = len(r)
+    ret = {}#'year':[sum,month_cnt,[(m,r)]]
+    result = []
+    ylist = sorted(set(y))
+    for i in range((n)):
+        year, month , rad = y[i], m[i], r[i]
+        if year not in ret:
+            ret[year] = [0,0]#[0,0,[]]
+        ret[year][0] += rad
+        ret[year][1] += 1
+        #ret[year][2].append([(month, rad)])
+    for i in ylist:
+        if ret[i][1] >= delta:
+            result.append([i, ret[i][0]/float(ret[i][1]), ret[i][1]])
+    #print result
+    return result
+
+def removeCycle(data, cycle=12):
+    m = []
+    mc = []
+    ma = []
+    r = []
+    for i in range(cycle):
+        m.append(0)
+        mc.append(0)
+    for i in range(len(data)):
+        k = i % cycle
+        m[k] += data[i]
+        mc[k] += 1
+    for i in range(cycle):
+        ma.append(float(m[i])/float(mc[i]))
+    
+    for i in range(len(data)):
+        r.append(data[i]-ma[i%cycle])
+    return r
+    
 def calMka(x):
     n = len(x)
     m = []
@@ -121,9 +198,29 @@ def calMka(x):
     ub = uf[::-1]
     return uf ,ub
     
+def ftest(ypre, Y ,k=10,alpha=0.05):
+    n = len(ypre)
+    yave = float(sum(ypre))/n
+    ssr, sse = 0.0, 0.0
+    for i in range(n):
+        ssr += (ypre[i]-yave) * (ypre[i]-yave)
+        sse += (ypre[i]-Y[i]) * (ypre[i]-Y[i])
+    f = (ssr / k) / (sse / (n-k-1))
+    return f
+'''
+    p_value = scipy.stats.f.cdf(scipy.stats.F, ypre, Y)
+    return p_value
+'''
     
-def line_regr(x,y,return_obj=True):
-    regr = linear_model.LinearRegression(copy_X=True,n_jobs=1)
+def pearson(x, y):
+    return scipy.stats.pearsonr(x, y)
+    
+def spearman(x, y):
+    return scipy.stats.spearmanr(x, y)
+    
+def line_regr(x,y,return_obj=True,fit_intercept=False):
+    #regr = linear_model.LinearRegression(copy_X=True,n_jobs=1)
+    regr = linear_model.LinearRegression(copy_X=True,fit_intercept=fit_intercept,n_jobs=1)
     regr.fit(x,y)
     if return_obj:
         '''
@@ -135,10 +232,108 @@ def line_regr(x,y,return_obj=True):
         
     else:
         return regr.coef_, regr.intercept_
+        
+def line_regr2(x,y,fit_intercept=False):
+    regr = linear_model.LarsCV(copy_X=True,fit_intercept=fit_intercept,n_jobs=1)
+    regr.fit(x,y)
+    return regr
+    
+def poly2_regr(x, y):
+    from sklearn.preprocessing import PolynomialFeatures
+    poly = PolynomialFeatures(degree=2)
+    poly.fit(x, y)
+    return poly
+        
+    
+def pls_regr(x, y):
+    from sklearn.cross_decomposition import PLSRegression
+    n = len(x[0])
+    if n < 2:
+        raise TypeError
+    score = -999999999999
+    pls = None
+    '''
+    for i in range(3, n):
+        pls2 = PLSRegression(n_components=i)
+        pls2.fit(x,y)
+        cscore = pls2.score(x, y)
+        #print i, cscore 
+        if cscore > score:
+            pls = pls2
+            score = cscore
+    '''
+    pls = PLSRegression(n_components=5)
+    pls.fit(x,y)
+    return pls
+
+def ridge_regr(x,y,alpha=0.1):
+    if type(alpha) == list:
+        #clf = linear_model.RidgeCV(alphas=alpha, normalize=True)
+        clf = linear_model.RidgeCV(alphas=alpha, fit_intercept=False)
+        clf.fit(x,y)
+        #alpha = clf.alpha_
+        #if alpha != 0.1:
+            #print alpha,'*',
+        return clf
+    regr = linear_model.Ridge(copy_X=True, alpha=alpha)
+    regr.fit(x,y)
+    return regr
+        
+def svr_regr(x,y):
+    #regr = svm.SVR(kernel='linear')
+    #regr = svm.SVR(kernel='precomputed')
+    #regr = svm.NuSVR()
+    regr = svm.LinearSVR(epsilon=0)
+    regr.fit(x,y)
+    return regr
+
+from sklearn import tree, ensemble    
+def per_regr(x,y):
+    regr = tree.DecisionTreeRegressor()
+    regr.fit(x,y)
+    return regr
+    
+def ada_regr(x,y):
+    regr = ensemble.AdaBoostRegressor()
+    regr.fit(x,y)
+    return regr
+    
+def rfr_regr(x,y):
+    regr = ensemble.RandomForestRegressor()
+    regr.fit(x,y)
+    return regr
+    
+    
+from pyearth import Earth
+def mars_regr(x, y):
+    model = Earth()
+    regr= model.fit(np.asarray(x),np.asarray(y))
+    return regr
+        
+def grnn_regr(x,y,std=0.1):
+    from neupy.algorithms import GRNN
+    regr = GRNN(std = std, verbose=False)
+    regr.train(x,y)
+    return regr
+    
+def logis_regr(x,y,return_obj=True,cs = True):
+    if cs:
+        #regr = linear_model.LogisticRegressionCV()
+        regr = linear_model.LogisticRegressionCV(solver='liblinear')
+    else:
+        regr = linear_model.LogisticRegression(C=10.0)
+    try:
+        regr.fit(x,y)
+    except:
+        regr = line_regr(x, y)
+    if return_obj:
+        return regr
+    else:
+        return regr.coef_, regr.intercept_
     
 def mka(x):
     xr = x[::-1]
-    ua, ub = calMka(x), calMka(xr)
+    ua, ub = calMka(x)[0], calMka(xr)[0]
     return ua, ub
 
 def wavelet(t='haar', x=[], a=2):
@@ -274,6 +469,27 @@ def anomaly(y):
         y[i] -= ave
     return y
     
+def guiyi(y):
+    n = len(y)
+    s = sum(y)
+    ma = float(max(y))
+    mi = float(min(y))
+    r = []
+    ave = float(s) / float(n)
+    for i in range(len(y)):
+        ret = (y[i]-mi) / (ma-mi)
+        r.append(ret)
+    return r
+    
+def deseason(y, st=1900):
+    import pandas as pd
+    import statsmodels.api as sm
+    ye = '%d-%02d' % (st + len(y)/12, len(y)%12 + 1)
+    m = pd.date_range('%04d-01' % st, ye, freq='M')
+    yd = pd.Series(y,m)
+    res = sm.tsa.seasonal_decompose(yd)
+    return res.trend[6:-6]
+    
 def getWV(y, wv='morlet', scale = 16):
     import pywt.cwt
     scales = range(2, 129, 2)
@@ -343,7 +559,7 @@ def integrateSin0(trise, tset, t1, PAR1):
         return result
 
 
-def integrateSin1(double trise, double tset, double t1, double PAR1):
+def integrateSin1(trise, tset, t1, PAR1):
     temp = PAR1 * (tset-trise) / pi / sin( (t1-trise) * pi / (tset-trise) )
     result = temp * ( 1 - cos( (t1-trise) * pi / (tset-trise) ) )
     if result < 0.:
@@ -351,23 +567,21 @@ def integrateSin1(double trise, double tset, double t1, double PAR1):
     else :
         return result
 
-def integrateSin2(double trise, double tset, double t2, double PAR2):
-    double temp, result
+def integrateSin2(trise, tset, t2, PAR2):
     temp = PAR2 * (tset-trise) / pi / sin( (t2-trise) * pi / (tset-trise) )
     result = temp * ( cos( (t2-trise) * pi / (tset-trise)) + 1 )
     if result < 0.:
         return 0.0
-    else :
+    else:
         return result
-
-def integrateXSin(double tr, double ts, double t1, double t2, double R1, double R2):
+        
+def integrateXSin(tr, ts, t1, t2, R1, R2):
     term1 = cos(pi*(t1-tr)/(tr-ts))
     term2 = cos(pi*(t2-tr)/(tr-ts))
-    term3 = 1./ sin(pi*(t2-tr)/(tr-ts))
-    term4 = 1./sin(pi*(t1-tr)/(-tr+ts))
-    term5 = sin(pi*(t1-tr)/(tr-ts)
+    term3 = 1.0/sin(pi*(t2-tr)/(tr-ts))
+    term4 = 1.0/sin(pi*(t1-tr)/(-tr+ts))
+    term5 = sin(pi*(t1-tr)/(tr-ts))
     term6 = sin(pi*(t2-tr)/(tr-ts))
-    
     temp1 = R2 * t1 * (tr-ts) * (term1-term2) * term3/pi/(t1-t2)
     temp2 = R1 * t2 * (tr-ts) * (term1 - term2)* term4/pi/(t1-t2)
     temp3 = (R1*(tr-ts)*term4*(-pi*t1*term1+pi*t2*term2+(tr-ts)*(term5-term6)))/(pi*pi*(t1-t2))
@@ -433,6 +647,24 @@ def mt(x, slen):
         tmp = (x1ave - x2ave) / (s * np.sqrt(2.0/float(slen)))
         t.append(tmp)
     return t
+def mean(l):
+    if len(l) == 0:
+        return 0
+    return float(sum(l))/float(len(l))
+    
+def calCV(x):
+    l = len(x)
+    if l == 0:
+        return 0
+    m = sum(x) *1.0 / float(l)
+    if m == 0:
+        return 0
+    s = 0.0
+    for i in x:
+        s += (float(i) - float(m)) ** 2
+    s = s * 1.0 / float(l)
+    s = s ** 0.5
+    return s * 1.0 / float(m)
 
 def TestApEnMt():
     n = 2000
@@ -448,9 +680,128 @@ def TestApEnMt():
     y1a = mt(y1, 100)
     plt.plot(x1[:1800], y1a)
     plt.show()
+    y1a = []
     for i in range(n-200):
         tmpx = y1[i:i+200]
         yt = ApEn(tmpx)
+        print i, yt
         y1a.append(yt)
-    plt.plot(x1[100:1900], y1a)
+    print len(y1a), len(x1[0:1800])
+    plt.plot(x1[0:1800], y1a)
     plt.show()
+    
+def getESS(p, r, use_pcc = True, use_rss = False):
+    k = []
+    if use_pcc:
+        all = []
+        for i in range(len(r)):
+            tmp = []
+            for j in range(len(p)):
+                tmp.append(p[j][i])
+            tmp.append(r[i])
+            all.append(tmp)
+        pc, pv = partial_corr(all)
+    for i in range(len(p)):
+        #pcr.append((pc[i][-1], pv[i][-1]))
+        if use_pcc:
+            ipc, ipv = pc[i][-1], pv[i][-1]
+        else:
+            ipc, ipv = pearson(p[i], r)
+        #print i, ipc, ipv, pearson(p[i], r)
+        k.append([i, abs(ipc), ipc, ipv, 0, p[i]])
+    k = sorted(k, key=lambda s : -s[1])
+    lEss = 0
+    x = []
+    cnt = 0
+    for i in k:
+        cx = i[5]
+        x.append(cx)
+        cEss = ess(x, r)
+        cnt += 1
+        i[4] = cEss - lEss
+        del i[5]
+        lEss = cEss
+    if use_rss:
+        Rss = rss(x, r)
+        k.append([cnt, 0, 0, 0, Rss])
+        lEss += Rss
+    for i in k:
+        i[4] = i[4] * 100 / lEss
+        del i[1]
+    k = sorted(k, key=lambda s : s[0])
+    #id, cor, pvalue, es
+    return k
+
+def ess(x, y):
+    if len(y) == 0:return 0
+    xt = []
+    for i in range(len(x[0])):
+        tmp = []
+        for j in range(len(x)):
+            tmp.append(x[j][i])
+        xt.append(tmp)
+    yt = line_regr(xt, y, fit_intercept = True).predict(xt)
+    my = sum(y)/len(y)
+    es = 0
+    for i in range(len(y)):
+        es += (yt[i]-my)*(yt[i]-my)
+    return es
+    
+def rss(x, y):
+    if len(y) == 0:return 0
+    xt = []
+    for i in range(len(x[0])):
+        tmp = []
+        for j in range(len(x)):
+            tmp.append(x[j][i])
+        xt.append(tmp)
+    yt = line_regr(xt, y, fit_intercept = True).predict(xt)
+    my = sum(y)/len(y)
+    rs = 0
+    for i in range(len(y)):
+        rs += (yt[i]-y[i])*(yt[i]-y[i])
+    return rs
+    
+def resize(d, x=180.0, y=360.0):
+    l1, l2 = d.shape
+    dt = scipy.ndimage.interpolation.zoom(d, (180.0/l1,360.0/l2))
+    return dt
+    
+def partial_corr(C):
+    """
+    Returns the sample linear partial correlation coefficients between pairs of variables in C, controlling 
+    for the remaining variables in C.
+    Parameters
+    ----------
+    C : array-like, shape (n, p)
+        Array with the different variables. Each column of C is taken as a variable
+    Returns
+    -------
+    P : array-like, shape (p, p)
+        P[i, j] contains the partial correlation of C[:, i] and C[:, j] controlling
+        for the remaining variables in C.
+    """
+    
+    C = np.asarray(C)
+    p = C.shape[1]
+    P_corr = np.zeros((p, p), dtype=np.float)
+    Pv = np.zeros((p, p), dtype=np.float32)
+    for i in range(p):
+        P_corr[i, i] = 1
+        for j in range(i+1, p):
+            idx = np.ones(p, dtype=np.bool)
+            idx[i] = False
+            idx[j] = False
+            beta_i = linalg.lstsq(C[:, idx], C[:, j])[0]
+            beta_j = linalg.lstsq(C[:, idx], C[:, i])[0]
+
+            res_j = C[:, j] - C[:, idx].dot(beta_i)
+            res_i = C[:, i] - C[:, idx].dot(beta_j)
+            
+            corr, v = stats.pearsonr(res_i, res_j)
+            P_corr[i, j] = corr
+            P_corr[j, i] = corr
+            Pv[i, j] = v
+            Pv[j, i] = v
+    #print Pv
+    return P_corr, Pv
